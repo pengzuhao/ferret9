@@ -1,0 +1,6 @@
+flowchart LR
+    App["菜单栏 App<br/>Ferret9"] --> Sock["/var/run/ferret9.sock<br/>launchd 创建，0666"]
+    CLI["命令行<br/>ferret9"] --> Sock
+    Sock --> Svc["ferret9-service<br/>以 _ferret9 运行"]
+    Svc --> Store["/var/db/ferret9<br/>每条一个 json，0600"]
+    Svc --> Grants["/var/db/ferret9/grants<br/>授权票，5 分钟有效"]

@@ -6,14 +6,7 @@ macOS 本机凭据库。一个菜单栏 App、一个命令行、一个由 launch
 
 ## 组件
 
-```mermaid
-flowchart LR
-    App["菜单栏 App<br/>Ferret9"] --> Sock
-    CLI["命令行<br/>ferret9"] --> Sock
-    Sock["/var/run/ferret9.sock<br/>launchd 创建，模式 0666"] --> Svc
-    Svc["ferret9-service<br/>以 _ferret9 运行"] --> Store["/var/db/ferret9<br/>每条一个 json，模式 0600"]
-    Svc --> Grants["/var/db/ferret9/grants<br/>授权票，5 分钟有效"]
-```
+<img src="docs/diagrams/components.png" alt="菜单栏 App 和命令行连到 /var/run/ferret9.sock，服务再写 /var/db/ferret9 与 grants" width="960">
 
 | 组件 | 位置 | 谁拿着它 |
 |------|------|----------|
@@ -29,26 +22,7 @@ flowchart LR
 
 App 和命令行走同一条路，区别只在谁去弹授权框。
 
-```mermaid
-sequenceDiagram
-    actor U as 用户
-    participant C as App 或 ferret9
-    participant L as launchd
-    participant S as ferret9-service
-    participant D as /var/db/ferret9
-
-    U->>C: list / add / rename / delete / test
-    alt 写入：add、rename、replace、delete
-        C->>U: 系统授权框（com.ferret9.manage）
-        U-->>C: 允许
-        C->>D: 写一张 5 分钟有效的授权票
-    end
-    C->>L: 连接 /var/run/ferret9.sock
-    L->>S: 把连接交给已在运行的服务
-    S->>S: 写入操作先核对授权票
-    S->>D: 读或写记录
-    S-->>C: JSON 应答，只含名称、类型、说明、指纹
-```
+<img src="docs/diagrams/request.png" alt="请求时序：写入先弹授权并写票，再经 launchd 连到服务，服务核对后读写记录" width="960">
 
 读操作（`list`、`inspect`、`paste`、`test`）不弹授权框，也不查票。
 
@@ -92,19 +66,7 @@ kubeconfig、阿里云 JSON、INI（AWS、ossutil）、环境变量赋值、扁�
 
 打开菜单栏上的 Ferret9，选「打开」。窗口左侧是已纳管列表（名称、类型、说明），右侧是选中那一条的详情。顶栏只有一个按钮：「导入」。
 
-```mermaid
-flowchart TD
-    A["点「导入」"] --> B{"选择文件 或 粘贴内容"}
-    B -->|选择文件| C["服务只识别，不入库"]
-    B -->|粘贴内容| D["填文件名和放入目录，正文来自剪贴板"]
-    D --> C
-    C --> E["左侧换成候选行"]
-    E --> F["双击要留下的那一行"]
-    F --> G["系统授权框"]
-    G --> H["写入库，列表回到已纳管"]
-    H --> I["右侧改「说明」，点「保存更改」"]
-    I --> J["再授权一次，说明写进记录"]
-```
+<img src="docs/diagrams/import.png" alt="导入：选文件或粘贴，服务只识别，双击候选并授权后入库，再改说明并保存" width="360">
 
 没双击就还停在候选列表。点菜单栏 Ferret9 →「打开」会丢弃候选，回到已入库的列表，不会写入任何东西。
 

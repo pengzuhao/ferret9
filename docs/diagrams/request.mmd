@@ -1,0 +1,18 @@
+sequenceDiagram
+    actor 用户
+    participant 客户端 as App 或命令行
+    participant launchd
+    participant 服务 as ferret9-service
+    participant 数据 as /var/db/ferret9
+
+    用户->>客户端: list、add、rename、delete、test
+    alt 写入才会授权
+        客户端->>用户: 系统授权框
+        用户-->>客户端: 允许
+        客户端->>数据: 写入 5 分钟授权票
+    end
+    客户端->>launchd: 连接 socket
+    launchd->>服务: 把连接交给服务
+    Note over 服务: 写入前先核对授权票
+    服务->>数据: 读或写记录
+    服务-->>客户端: 名称、类型、说明、指纹
