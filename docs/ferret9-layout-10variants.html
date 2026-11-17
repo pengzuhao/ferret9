@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Ferret9 — 10 版布局</title>
+<style>
+  :root {
+    --bg: #E8E8ED;
+    --surface: #FFFFFF;
+    --surface2: #F5F5F7;
+    --border: rgba(0,0,0,.10);
+    --fg: #1C1C1E;
+    --muted: #636366;
+    --accent: #E8892A;
+    --accent-hover: #D47A1F;
+    --danger: #C93C3C;
+    --danger-bg: #FEF2F2;
+    --danger-border: rgba(201,60,60,.35);
+    --mono: "SF Mono", Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+    --radius: 10px;
+    --btn-h: 32px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--sans); background: var(--bg); color: var(--fg); min-height: 100vh; display: flex; }
+
+  /* Shared button tokens */
+  .btn { height: var(--btn-h); padding: 0 14px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer;
+    border: 1px solid transparent; background: transparent; color: var(--fg); font-family: inherit;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap;
+    transition: background .12s, border-color .12s, box-shadow .12s; }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn--primary { background: var(--accent); color: #1a1008; border-color: rgba(0,0,0,.06); font-weight: 600;
+    box-shadow: 0 1px 0 rgba(255,255,255,.25) inset, 0 1px 2px rgba(0,0,0,.06); }
+  .btn--primary:hover { background: var(--accent-hover); }
+  .btn--secondary { background: var(--surface2); border-color: var(--border); color: var(--fg); }
+  .btn--secondary:hover { background: #EBEBEF; }
+  .btn--ghost { border-color: transparent; color: var(--muted); }
+  .btn--ghost:hover { background: rgba(0,0,0,.05); color: var(--fg); }
+  .btn--link { border: 0; padding: 0 8px; height: auto; min-height: var(--btn-h); color: #007AFF; background: none; font-weight: 400; }
+  .btn--destructive { color: var(--danger); background: var(--danger-bg); border: 1px solid var(--danger-border); }
+  .btn--destructive:hover { background: #FEE8E8; }
+  .btn--destructive-text { border: 0; background: none; color: var(--danger); font-weight: 500; padding: 0 10px; }
+  .btn--destructive-text:hover { text-decoration: underline; background: var(--danger-bg); border-radius: 6px; }
+  .btn--sm { height: 28px; padding: 0 10px; font-size: 12px; border-radius: 6px; }
+
+  nav.gallery {
+    width: 220px; flex-shrink: 0; background: #2C2C2E; color: #F2F2F7;
+    padding: 20px 0; display: flex; flex-direction: column; gap: 2px;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  nav.gallery .brand { padding: 0 18px 16px; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  nav.gallery img { width: 28px; height: 28px; border-radius: 6px; }
+  nav.gallery button {
+    text-align: left; border: 0; background: transparent; color: #AEAEB2; padding: 10px 18px;
+    font-size: 13px; cursor: pointer; font-family: inherit; border-left: 3px solid transparent;
+  }
+  nav.gallery button:hover { color: #FFF; background: rgba(255,255,255,.06); }
+  nav.gallery button.on { color: #FFF; background: rgba(232,137,42,.15); border-left-color: var(--accent); }
+  nav.gallery button small { display: block; font-size: 11px; color: #8E8E93; margin-top: 2px; font-weight: 400; }
+  nav.gallery button.on small { color: #C9A574; }
+
+  main { flex: 1; padding: 20px 24px 40px; overflow: auto; }
+  main h1 { margin: 0 0 6px; font-size: 20px; font-weight: 600; }
+  main .hint { margin: 0 0 20px; font-size: 13px; color: var(--muted); max-width: 56em; line-height: 1.5; }
+  .stage { display: none; }
+  .stage.on { display: block; }
+
+  .mock {
+    max-width: 1060px; background: var(--surface); border-radius: 12px;
+    border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,.07); overflow: hidden;
+  }
+  .mock .chrome { padding: 8px 14px; font-size: 12px; border-bottom: 1px solid var(--border); color: var(--muted); }
+  .mock .chrome b { color: var(--fg); font-weight: 600; }
+  .mock .tb { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--border); }
+  .mock .tb .meta { margin-left: auto; font-size: 12px; color: var(--muted); font-weight: 500; }
+
+  .split { display: grid; grid-template-columns: 1fr 340px; gap: 0; min-height: 420px; }
+  .list-pane { border-right: 1px solid var(--border); background: var(--surface2); display: flex; flex-direction: column; min-height: 0; }
+  .list-pane h3 { margin: 0; padding: 12px 16px 8px; font-size: 12px; font-weight: 600; text-transform: none; color: var(--muted); letter-spacing: 0; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .tbl th { text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 600; color: var(--muted);
+    background: rgba(255,255,255,.6); border-bottom: 1px solid var(--border); position: sticky; top: 0; }
+  .tbl td { padding: 10px 12px; border-bottom: 1px solid rgba(0,0,0,.04); }
+  .tbl tr.on td { background: rgba(232,137,42,.10); box-shadow: inset 3px 0 0 var(--accent); }
+  .tbl .m { font-family: var(--mono); font-size: 11px; }
+
+  .insp { display: flex; flex-direction: column; background: var(--surface); min-height: 0; }
+  .insp-head { padding: 12px 16px 8px; font-size: 13px; font-weight: 600; }
+  .insp-fields { flex: 1; padding: 0 16px; display: flex; flex-direction: column; gap: 14px; }
+  .row-lbl { display: grid; grid-template-columns: 52px 1fr; gap: 10px; align-items: start; }
+  .row-lbl > span { font-size: 11px; font-weight: 600; color: var(--muted); padding-top: 9px; }
+  .row-lbl input, .row-lbl textarea {
+    width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+    font-size: 12px; font-family: inherit; background: #FAFAFA;
+  }
+  .row-lbl textarea { min-height: 56px; resize: vertical; line-height: 1.45; }
+  .row-lbl .m input { font-family: var(--mono); font-size: 11px; }
+  .row-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .insp-foot { margin-top: auto; }
+
+  /* === Variant-specific === */
+
+  /* 01 HIG footer bar */
+  .v01 .insp-foot {
+    border-top: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; gap: 10px;
+    background: linear-gradient(to top, var(--surface2), var(--surface));
+  }
+  .v01 .insp-foot .grow { flex: 1; }
+
+  /* 02 Row inline link buttons */
+  .v02 .row-lbl { grid-template-columns: 52px 1fr auto; align-items: center; }
+  .v02 .row-lbl > span { padding-top: 0; }
+  .v02 .insp-foot {
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--border);
+  }
+  .v02 .insp-foot .bar { display: flex; gap: 8px; }
+  .v02 .insp-foot .bar .grow { flex: 1; }
+
+  /* 03 Save full width + danger zone */
+  .v03 .insp-foot { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .v03 .save-full { width: 100%; }
+  .v03 .danger-zone {
+    border: 1px solid var(--danger-border); border-radius: var(--radius); padding: 12px 14px;
+    background: var(--danger-bg);
+  }
+  .v03 .danger-zone p { margin: 0 0 10px; font-size: 11px; color: #8B4040; line-height: 1.4; }
+  .v03 .danger-zone .btn { width: 100%; }
+
+  /* 04 Header … menu */
+  .v04 .insp-head { display: flex; align-items: center; justify-content: space-between; }
+  .v04 .insp-foot { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+  /* 05 Chip action bar */
+  .v05 .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 12px; }
+  .v05 .chips .dot { width: 1px; height: 24px; background: var(--border); margin: 4px 4px; }
+  .v05 .insp-fields { padding-bottom: 8px; }
+
+  /* 06 Toolbar style segmented secondary */
+  .v06 .row-lbl.r3 { grid-template-columns: 52px 1fr; }
+  .v06 .toolbar-mini { display: flex; gap: 4px; margin-top: 6px; }
+  .v06 .toolbar-mini .btn { border-radius: 6px; }
+  .v06 .insp-foot {
+    display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
+    padding: 12px 16px; border-top: 1px solid var(--border); background: var(--surface2);
+  }
+
+  /* 07 Sticky split foot: save left delete right as text */
+  .v07 .insp-foot {
+    position: sticky; bottom: 0; display: flex; align-items: center; padding: 10px 16px;
+    border-top: 1px solid var(--border); background: rgba(255,255,255,.92); backdrop-filter: blur(8px);
+  }
+  .v07 .insp-foot .grow { flex: 1; }
+
+  /* 08 Compact — no field buttons, all in footer */
+  .v08 .row-lbl { grid-template-columns: 52px 1fr; }
+  .v08 .insp-foot {
+    padding: 14px 16px; border-top: 1px solid var(--border);
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  }
+  .v08 .insp-foot .sep { flex: 1; min-width: 8px; }
+
+  /* 09 Dark inspector */
+  .v09 .split { grid-template-columns: 1fr 360px; }
+  .v09 .insp { background: #1E1E20; color: #F5F5F7; }
+  .v09 .insp-head { color: #FFF; }
+  .v09 .row-lbl > span { color: #98989D; }
+  .v09 .row-lbl input, .v09 .row-lbl textarea { background: #2C2C2E; border-color: #3A3A3C; color: #F5F5F7; }
+  .v09 .insp-foot { border-top-color: #3A3A3C; background: #252527; padding: 12px 16px; display: flex; gap: 8px; align-items: center; }
+  .v09 .insp-foot .grow { flex: 1; }
+  .v09 .btn--secondary { background: #3A3A3C; border-color: #48484A; color: #F5F5F7; }
+
+  /* 10 System Settings grouping */
+  .v10 .group { margin: 0 12px 12px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .v10 .group .cell {
+    display: grid; grid-template-columns: 64px 1fr auto; gap: 8px; align-items: center;
+    padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 12px;
+  }
+  .v10 .group .cell:last-child { border-bottom: 0; }
+  .v10 .group .cell label { font-size: 11px; color: var(--muted); font-weight: 500; }
+  .v10 .group input, .v10 .group textarea { border: 0; background: transparent; padding: 4px 0; font-size: 12px; width: 100%; font-family: inherit; }
+  .v10 .group textarea { min-height: 40px; resize: none; }
+  .v10 .insp-fields { padding: 8px 0 0; gap: 0; }
+  .v10 .insp-foot { padding: 16px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<nav class="gallery" id="nav"></nav>
+<main id="main"></main>
+<script>
+const variants = [
+  { id: 1, t: "01 · HIG 底栏", s: "保存主钮 + 删除用纯文字危险链接，分居两侧",
+    cls: "v01", hint: "删除不要单独大块红按钮：放底栏左侧「删除此条目…」，右侧琥珀「保存」。符合 macOS Inspector 主次。" },
+  { id: 2, t: "02 · 行内链式", s: "Finder/测试用次要小钮；底栏成组",
+    cls: "v02", hint: "字段行右侧只留小 secondary；保存与删除同在底栏，删除为 destructive-text。" },
+  { id: 3, t: "03 · 危险分区", s: "GitHub 式 Danger zone",
+    cls: "v03", hint: "表单区零红色；底部独立浅红分区+说明，删除唯一且全宽 outline。" },
+  { id: 4, t: "04 · 标题菜单", s: "删除收进 ⋯，底栏只保留保存",
+    cls: "v04", hint: "破坏操作不进主视觉；详情标题旁 ⋯ →「删除…」，底栏仅「保存更改」。" },
+  { id: 5, t: "05 · 芯片操作栏", s: "保存 / Finder / 测试 / 删除 一条芯片栏",
+    cls: "v05", hint: "字段下方横向 chips；删除与正向操作用竖线隔开，destructive outline 小尺寸。" },
+  { id: 6, t: "06 · 迷你工具条", s: "路径/命令下挂工具条",
+    cls: "v06", hint: "等宽字段下 4px 间距工具条；底栏灰底：左保存、右删除文字。" },
+  { id: 7, t: "07 · 磨砂底栏", s: "sticky 底栏 · 删除右对齐文字",
+    cls: "v07", hint: "滚动时底栏固定；删除在最右、无填充，避免 v2 那种孤岛大钮。" },
+  { id: 8, t: "08 · 底栏集中", s: "字段无钮，动作全在底栏",
+    cls: "v08", hint: "说明区旁不放保存；底栏 [Finder][测试][保存] … [删除此条目] 一气排开。" },
+  { id: 9, t: "09 · 深色检查器", s: "列表浅 / 详情深",
+    cls: "v09", hint: "对比 v2 单色；深色 Inspector + 琥珀主钮 + 删除仅文字。" },
+  { id: 10, t: "10 · 设置分组", s: "macOS 设置式圆角分组",
+    cls: "v10", hint: "字段在 group 内无框；底栏全宽保存 + 居中删除链接。" },
+];
+
+function inspBody(v, opts = {}) {
+  const foot = opts.foot || '';
+  const extra = opts.extra || '';
+  return `
+  <div class="insp ${v.cls}">
+    <div class="insp-head">详情 · config.json-default ${opts.headExtra||''}</div>
+    <div class="insp-fields">
+      ${opts.fields || defaultFields(opts)}
+      ${extra}
+    </div>
+    ${foot}
+  </div>`;
+}
+
+function defaultFields(opts) {
+  const rowBtn = (label, val, btn) => opts.noRowBtn ? '' : `<button type="button" class="btn btn--secondary btn--sm">${btn}</button>`;
+  const g3 = opts.noRowBtn ? '52px 1fr' : '52px 1fr auto';
+  return `
+    <div class="row-lbl" style="grid-template-columns:${g3}"><span>CLI</span><input readonly value="aliyun cli"/>${rowBtn('','','')}</div>
+    <div class="row-lbl" style="grid-template-columns:${opts.saveInline?'52px 1fr auto':'52px 1fr auto'}">
+      <span>说明</span><textarea>示例云账号</textarea>
+      ${opts.saveInline ? '<button type="button" class="btn btn--primary btn--sm">保存</button>' : '<span></span>'}
+    </div>
+    <div class="row-lbl r3" style="grid-template-columns:${g3}"><span>路径</span><div class="m"><input readonly value="~/.aliyun/config.json"/></div>${opts.noRowBtn?'':'<button type="button" class="btn btn--secondary btn--sm">Finder</button>'}</div>
+    <div class="row-lbl r3" style="grid-template-columns:${g3}"><span>命令</span><div class="m"><input readonly value="aliyun --config-path … configure list"/></div>${opts.noRowBtn?'':'<button type="button" class="btn btn--secondary btn--sm">测试</button>'}</div>
+  `;
+}
+
+function mockWindow(v, body) {
+  return `
+  <div class="mock ${v.cls}">
+    <div class="chrome"><b>Ferret9</b> — config.json-default</div>
+    <div class="tb"><button type="button" class="btn btn--primary">导入</button><span class="meta">已纳管 27 条</span></div>
+    <div class="split">
+      <div class="list-pane">
+        <h3>已纳管配置</h3>
+        <table class="tbl"><thead><tr><th>名称</th><th>类型</th><th>说明</th><th>原始路径</th></tr></thead>
+        <tbody>
+          <tr class="on"><td>config.json-default</td><td>aliyun</td><td>示例云账号</td><td class="m">~/.aliyun/config.json</td></tr>
+          <tr><td>example-app</td><td>aliyun</td><td>Example App</td><td class="m">~/.aliyun/…-example-app</td></tr>
+          <tr><td>dev</td><td>kubeconfig</td><td>示例开发集群</td><td class="m">~/.kube/config-dev</td></tr>
+        </tbody></table>
+      </div>
+      ${body}
+    </div>
+  </div>`;
+}
+
+const builders = {
+  1: v => mockWindow(v, inspBody(v, {
+    saveInline: true,
+    foot: `<div class="insp-foot"><button type="button" class="btn btn--destructive-text">删除此条目…</button><span class="grow"></span><button type="button" class="btn btn--primary">保存</button></div>`
+  })),
+  2: v => mockWindow(v, inspBody(v, {
+    foot: `<div class="insp-foot"><div class="bar"><span class="grow"></span><button type="button" class="btn btn--destructive-text">删除…</button><button type="button" class="btn btn--primary">保存</button></div></div>`,
+    saveInline: true
+  })),
+  3: v => mockWindow(v, inspBody(v, {
+    saveInline: false,
+    foot: `<div class="insp-foot">
+      <button type="button" class="btn btn--primary save-full">保存更改</button>
+      <div class="danger-zone"><p>从库中移除后，磁盘原文件不会被删除。此操作需要管理员授权。</p>
+      <button type="button" class="btn btn--destructive">从纳管列表中删除</button></div></div>`
+  })),
+  4: v => mockWindow(v, inspBody(v, {
+    headExtra: '<button type="button" class="btn btn--ghost btn--sm" style="float:right">⋯</button>',
+    saveInline: true,
+    foot: `<div class="insp-foot"><button type="button" class="btn btn--primary">保存更改</button></div>`
+  })),
+  5: v => mockWindow(v, inspBody(v, {
+    saveInline: false,
+    noRowBtn: true,
+    extra: `<div class="chips">
+      <button type="button" class="btn btn--primary btn--sm">保存</button>
+      <button type="button" class="btn btn--secondary btn--sm">Finder</button>
+      <button type="button" class="btn btn--secondary btn--sm">运行测试</button>
+      <span class="dot"></span>
+      <button type="button" class="btn btn--destructive btn--sm">删除</button>
+    </div>`,
+    foot: ''
+  })),
+  6: v => mockWindow(v, inspBody(v, {
+    saveInline: false,
+    fields: defaultFields({ noRowBtn: true }) + `
+      <div class="row-lbl"><span>路径</span><div><motion class="m"><input readonly value="~/.aliyun/config.json"/></motion>
+        <div class="toolbar-mini"><button class="btn btn--secondary btn--sm">在 Finder 中显示</button></div></div></div>
+      <div class="row-lbl"><span>命令</span><div><motion class="m"><input readonly value="aliyun --config-path … list"/></motion>
+        <div class="toolbar-mini"><button class="btn btn--secondary btn--sm">运行测试</button></div></div></div>`.replace(/<motion/g,'<div').replace(/<\/motion/g,'</div'),
+    foot: `<div class="insp-foot"><button type="button" class="btn btn--primary">保存</button><span class="grow"></span><button type="button" class="btn btn--destructive-text">删除</button></div>`
+  })),
+  7: v => mockWindow(v, inspBody(v, {
+    saveInline: true,
+    foot: `<div class="insp-foot"><button type="button" class="btn btn--primary">保存</button><span class="grow"></span><button type="button" class="btn btn--destructive-text">删除此条目</button></div>`
+  })),
+  8: v => mockWindow(v, inspBody(v, {
+    noRowBtn: true, saveInline: false,
+    foot: `<div class="insp-foot">
+      <button type="button" class="btn btn--secondary btn--sm">Finder</button>
+      <button type="button" class="btn btn--secondary btn--sm">测试</button>
+      <button type="button" class="btn btn--primary">保存</button>
+      <span class="sep"></span>
+      <button type="button" class="btn btn--destructive-text">删除此条目</button></div>`
+  })),
+  9: v => mockWindow(v, inspBody(v, {
+    saveInline: true,
+    foot: `<div class="insp-foot"><button type="button" class="btn btn--destructive-text">删除…</button><span class="grow"></span><button type="button" class="btn btn--primary">保存</button><button type="button" class="btn btn--secondary btn--sm">Finder</button><button type="button" class="btn btn--secondary btn--sm">测试</button></div>`
+  })),
+  10: v => mockWindow(v, `
+  <div class="insp ${v.cls}">
+    <div class="insp-head">详情</div>
+    <div class="insp-fields">
+      <div class="group">
+        <div class="cell"><label>CLI</label><input readonly value="aliyun cli"/><span></span></div>
+        <div class="cell"><label>说明</label><textarea>示例云账号</textarea><span></span></div>
+      </div>
+      <div class="group">
+        <div class="cell"><label>路径</label><input class="m" readonly value="~/.aliyun/config.json" style="font-family:var(--mono);font-size:11px"/><button class="btn btn--link btn--sm">显示</button></div>
+        <div class="cell"><label>命令</label><input class="m" readonly value="aliyun … list" style="font-family:var(--mono);font-size:11px"/><button class="btn btn--link btn--sm">测试</button></div>
+      </div>
+    </div>
+    <div class="insp-foot">
+      <button type="button" class="btn btn--primary save-full" style="width:100%">保存更改</button>
+      <button type="button" class="btn btn--destructive-text" style="align-self:center">删除此凭据…</button>
+    </div>
+  </div>`)
+};
+
+// fix v6 duplicate path rows - simplify builder 6
+builders[6] = v => mockWindow(v, `
+  <div class="insp v06">
+    <div class="insp-head">详情</div>
+    <div class="insp-fields">
+      <div class="row-lbl"><span>CLI</span><input readonly value="aliyun cli"/></div>
+      <div class="row-lbl"><span>说明</span><textarea>示例云账号</textarea></div>
+      <div class="row-lbl r3"><span>路径</span><div class="m"><input readonly value="~/.aliyun/config.json"/><div class="toolbar-mini"><button class="btn btn--secondary btn--sm">Finder</button></div></div></div>
+      <div class="row-lbl r3"><span>命令</span><div class="m"><input readonly value="aliyun … configure list"/><div class="toolbar-mini"><button class="btn btn--secondary btn--sm">测试</button></div></div></div>
+    </div>
+    <div class="insp-foot"><button class="btn btn--primary">保存</button><span style="flex:1"></span><button class="btn btn--destructive-text">删除</button></div>
+  </div>`);
+
+let cur = 1;
+const nav = document.getElementById('nav');
+nav.innerHTML = `<div class="brand"><img src="app-icon.png" alt="" onerror="this.style.display='none'"/>Ferret9 ×10</div>` +
+  variants.map(x => `<button type="button" data-id="${x.id}" class="${x.id===cur?'on':''}">${x.t}<small>${x.s}</small></button>`).join('');
+
+const main = document.getElementById('main');
+function render() {
+  const v = variants.find(x => x.id === cur);
+  main.innerHTML = `<h1>${v.t}</h1><p class="hint">${v.hint}</p><div class="stage on">${builders[v.id](v)}</div>`;
+  nav.querySelectorAll('button[data-id]').forEach(b => b.classList.toggle('on', +b.dataset.id === cur));
+}
+nav.addEventListener('click', e => {
+  const b = e.target.closest('button[data-id]');
+  if (!b) return;
+  cur = +b.dataset.id;
+  render();
+});
+render();
+</script>
+</body>
+</html>

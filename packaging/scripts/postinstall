@@ -1,0 +1,10 @@
+#!/bin/bash
+set -euo pipefail
+launchctl bootout system/com.coffer.service >/dev/null 2>&1 || true
+rm -f /Library/LaunchDaemons/com.coffer.service.plist /Library/PrivilegedHelperTools/coffer-service /var/run/coffer.sock
+ln -sfn ferret9 /usr/local/bin/coffer
+launchctl bootout system/com.ferret9.service >/dev/null 2>&1 || true
+launchctl bootstrap system /Library/LaunchDaemons/com.ferret9.service.plist
+launchctl enable system/com.ferret9.service
+launchctl kickstart -k system/com.ferret9.service
+exit 0

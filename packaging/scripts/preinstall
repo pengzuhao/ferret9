@@ -1,0 +1,20 @@
+#!/bin/bash
+set -euo pipefail
+if ! id -u _ferret9 >/dev/null 2>&1; then
+    last=$(dscl . -list /Users UniqueID | awk '{print $2}' | sort -n | tail -1)
+    uid=$(( ${last:-500} + 1 ))
+    dscl . -create /Groups/_ferret9
+    dscl . -create /Groups/_ferret9 PrimaryGroupID "$uid"
+    dscl . -create /Users/_ferret9
+    dscl . -create /Users/_ferret9 UserShell /usr/bin/false
+    dscl . -create /Users/_ferret9 UniqueID "$uid"
+    dscl . -create /Users/_ferret9 PrimaryGroupID "$uid"
+    dscl . -create /Users/_ferret9 RealName "Ferret9"
+fi
+if [[ -d /var/db/coffer && ! -e /var/db/ferret9 ]]; then
+    mkdir -p /var/db/ferret9
+    cp -Rp /var/db/coffer/. /var/db/ferret9/
+fi
+install -d -o _ferret9 -g _ferret9 -m 700 /var/db/ferret9
+chown -R _ferret9:_ferret9 /var/db/ferret9
+exit 0

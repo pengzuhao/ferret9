@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ferret9 · 抽屉</title>
+<style>
+  :root {
+    --ink: #172033;
+    --muted: #5c6b80;
+    --faint: #8b97a8;
+    --line: #e4e1d8;
+    --paper: #f4f1ea;
+    --card: #fffcf7;
+    --navy: #1e3a5f;
+    --green: #0f7a4e;
+    --green-ink: #ffffff;
+    --amber: #8a5a12;
+    --amber-bg: #f4e6cf;
+    --danger: #8d2f2f;
+    --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    --sans: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  .top {
+    position: sticky; top: 0; z-index: 5;
+    background: rgba(244,241,234,.94);
+    border-bottom: 1px solid var(--line);
+    padding: 18px 28px 14px;
+    backdrop-filter: blur(8px);
+  }
+  h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
+  .lede { margin: 6px 0 0; color: var(--muted); max-width: 78ch; }
+  .switch { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .switch button {
+    border: 1px solid var(--line); background: transparent;
+    border-radius: 999px; padding: 6px 11px; color: var(--muted);
+  }
+  .switch button[aria-pressed="true"] {
+    background: var(--navy); color: white; border-color: var(--navy);
+  }
+  main { padding: 22px 28px 64px; }
+  .stage { display: none; }
+  .stage.on { display: block; }
+  .cap { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; margin-bottom: 12px; }
+  .cap h2 { margin: 0; font-size: 16px; font-weight: 600; }
+  .cap p { margin: 0; color: var(--muted); font-size: 13px; }
+  .win {
+    width: min(1040px, 100%);
+    background: var(--card);
+    border: 1px solid #ddd6c8;
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(30, 36, 28, .08);
+    overflow: hidden;
+  }
+  .chrome { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border-bottom: 1px solid var(--line); }
+  .dots { display: flex; gap: 6px; }
+  .dots i { width: 10px; height: 10px; border-radius: 50%; display: block; background: #d9d3c7; }
+  .dots i:first-child { background: #e0b4a4; }
+  .chrome b { font-weight: 600; font-size: 13px; }
+  .chrome span { margin-left: auto; color: var(--faint); font-size: 12px; }
+  .body { min-height: 460px; }
+  .row { display: grid; grid-template-columns: 250px 1fr; min-height: 460px; }
+  .side { border-right: 1px solid var(--line); padding: 10px; background: #faf7f1; }
+  .side h3 { margin: 12px 8px 4px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+  .item { display: block; width: 100%; text-align: left; border: 0; background: transparent; border-radius: 7px; padding: 7px 8px; }
+  .item.on { background: #e7eef6; }
+  .item small, .meta, .path, .cmd { font-family: var(--mono); font-size: 11.5px; }
+  .item small { display: block; color: var(--faint); }
+  .detail { padding: 22px 26px; }
+  .kicker { color: var(--green); font-size: 12px; font-weight: 600; letter-spacing: .04em; }
+  .detail h3 { margin: 4px 0 2px; font-size: 26px; letter-spacing: -.03em; }
+  .path { color: var(--navy); }
+  .cmd {
+    margin: 16px 0; padding: 10px 12px; background: #f3f6f4; border-radius: 8px;
+    display: flex; justify-content: space-between; gap: 12px; align-items: center;
+  }
+  .warn { background: var(--amber-bg); color: var(--amber); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+  .actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .btn { border: 1px solid var(--line); background: white; border-radius: 8px; padding: 7px 11px; }
+  .btn.primary { background: var(--green); color: var(--green-ink); border-color: var(--green); }
+  .btn.quiet { color: var(--danger); }
+  .facts { margin-top: 22px; display: grid; grid-template-columns: 88px 1fr; gap: 6px 12px; font-size: 13px; }
+  .facts dt { color: var(--faint); }
+  .facts dd { margin: 0; font-family: var(--mono); font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; color: var(--faint); font-weight: 600; letter-spacing: .06em; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  td { padding: 9px 12px; border-bottom: 1px solid #efeae1; vertical-align: top; }
+  tr.stale td:first-child { box-shadow: inset 3px 0 var(--amber); }
+  td .sub { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .mono { font-family: var(--mono); font-size: 12px; }
+  .term { background: #172033; color: #e7edf5; min-height: 460px; padding: 18px 18px 8px; }
+  .term .prompt { color: #8fb9a4; }
+  .term .line { display: grid; grid-template-columns: 168px 1fr auto; gap: 14px; padding: 7px 4px; border-bottom: 1px solid rgba(255,255,255,.06); font-family: var(--mono); font-size: 12.5px; }
+  .term .line b { font-weight: 500; }
+  .term .line em { color: #9fb0c6; font-style: normal; }
+  .term .flag { color: #e4c27a; }
+  .groups { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .group { padding: 14px 16px 18px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .group h3 { margin: 0 0 3px; font-size: 14px; }
+  .group .how { color: var(--muted); font-family: var(--mono); font-size: 11px; margin-bottom: 8px; }
+  .group li { list-style: none; }
+  .group ul { margin: 0; padding: 0; }
+  .group button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 5px 0; }
+  .src { padding: 4px 0 16px; }
+  .src h3 { margin: 16px 16px 6px; font-family: var(--mono); font-size: 12px; color: var(--navy); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px; }
+  .chip { border: 1px solid var(--line); background: white; border-radius: 7px; padding: 6px 8px; text-align: left; }
+  .chip b { display: block; font-weight: 600; }
+  .chip span { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .chip.out { border-style: dashed; color: var(--muted); }
+  .one { display: grid; grid-template-columns: 220px 1fr; min-height: 460px; }
+  .one .rail { border-right: 1px solid var(--line); }
+  .one .rail button { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid #f1ece3; background: transparent; padding: 10px 12px; }
+  .one .rail button.on { background: #f4f7f5; }
+  .diff td.bad { color: var(--amber); }
+  .palette { padding: 28px; }
+  .palette input { width: 100%; border: 0; border-bottom: 1px solid var(--line); background: transparent; font-size: 22px; padding: 8px 2px 12px; outline: none; }
+  .hit { display: grid; grid-template-columns: 180px 1fr auto; gap: 12px; align-items: center; padding: 12px 2px; border-bottom: 1px solid #f1ece3; }
+  .hit kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); border-radius: 5px; padding: 3px 6px; color: var(--muted); }
+  .split { display: grid; grid-template-columns: 1fr 1fr; min-height: 460px; }
+  .split section { padding: 8px 0 16px; }
+  .split section + section { border-left: 1px solid var(--line); }
+  .split h3 { margin: 12px 16px; font-size: 13px; }
+  .entry { display: flex; justify-content: space-between; gap: 8px; padding: 7px 16px; }
+  .entry .tag { font-size: 11px; color: var(--green); }
+  .entry .tag.no { color: var(--amber); }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px; background: #f7f4ee; }
+  .card { background: white; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .card .path { display: block; margin: 4px 0 8px; }
+  .card .cmd { margin: 0; }
+  .note { margin: 14px 2px 0; color: var(--faint); font-size: 12px; }
+  @media (max-width: 860px) {
+    .row, .one, .split, .groups { grid-template-columns: 1fr; }
+    .cards { grid-template-columns: 1fr; }
+    .term .line, .hit { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Ferret9 · 抽屉</h1>
+  <p class="lede">选一条凭据，看它从哪个文件来、用什么命令打开。路径是这台机器上的真实路径，命令是本机已装工具的用法。没有密钥。点上面的名称切换。</p>
+  <div class="switch" id="switch"></div>
+</header>
+<main id="main"></main>
+<script>
+const items = [
+  { id:"dev", name:"config-dev", kind:"kubeconfig", group:"kubectl", src:"~/.kube", path:"~/.kube/config-dev", cmd:"kubectl --kubeconfig ~/.kube/config-dev get ns", edit:"kubectl 或编辑器打开该文件", fp:"92ef8657d286", stale:false },
+  { id:"prod", name:"config-prod", kind:"kubeconfig", group:"kubectl", src:"~/.kube", path:"~/.kube/config-prod", cmd:"kubectl --kubeconfig ~/.kube/config-prod get ns", edit:"kubectl 或编辑器打开该文件", fp:"75d7c99107", stale:true },
+  { id:"ksh", name:"config-staging", kind:"kubeconfig", group:"kubectl", src:"~/.kube", path:"~/.kube/config-staging", cmd:"kubectl --kubeconfig ~/.kube/config-staging get ns", edit:"kubectl 或编辑器打开该文件", fp:"8c3c125ba8", stale:false },
+  { id:"ali", name:"example-app", kind:"aliyun", group:"aliyun", src:"~/.aliyun", path:"~/.aliyun/config.json-app", cmd:"aliyun configure --config-path ~/.aliyun/config.json-app", edit:"aliyun configure 或编辑器", fp:"a91c0e44", stale:false },
+  { id:"ee", name:"ee", kind:"aliyun", group:"aliyun", src:"~/.aliyun", path:"~/.aliyun/config.json", cmd:"aliyun configure --config-path ~/.aliyun/config.json", edit:"aliyun configure 或编辑器", fp:"c02aa19", stale:false },
+  { id:"oss", name:"ossutil-example", kind:"ossutil", group:"ossutil", src:"~", path:"~/.ossutilconfig", cmd:"ossutil -c ~/.ossutilconfig ls", edit:"ossutil config 或编辑器", fp:"44b1e0aa", stale:false },
+  { id:"cf", name:"example-dns", kind:"cloudflare", group:"编辑器", src:"~/.cloudflare", path:"~/.cloudflare/config.yaml", cmd:"编辑器打开 ~/.cloudflare/config.yaml", edit:"编辑器。本机没有 wrangler", fp:"9247ac5c", stale:false },
+  { id:"gh", name:"example-readonly", kind:"token", group:"gh", src:"~/.github", path:"~/.github/example-readonly.yaml", cmd:"gh auth status", edit:"编辑器。gh 读的是钥匙串，不读这个文件", fp:"2325ad7c", stale:false },
+  { id:"key", name:"id_ed25519", kind:"private-key", group:"ssh", src:"~/.ssh", path:"~/.ssh/id_ed25519", cmd:"ssh -i ~/.ssh/id_ed25519", edit:"不要用文本编辑器改私钥", fp:"0aa13c", stale:false },
+  { id:"redis", name:"example-cache", kind:"redis", group:"redis-cli", src:"~/.redis", path:"~/.redis/config.yaml", cmd:"redis-cli -h <该条目的 host>", edit:"编辑器打开 ~/.redis/config.yaml", fp:"f2c314b1", stale:false }
+];
+const outside = [
+  { path:"~/.docker/config.json", why:"密码在钥匙串，文件本身没有可搬的秘密" },
+  { path:"~/.aws/config", why:"只有区域，密钥在 ~/.aws/credentials" },
+  { path:"~/.config/example-api-key", why:"键名当时的识别器不认" },
+  { path:"~/.aliyun/config.json-readonly", why:"这次没有选入" }
+];
+const titles = [
+  ["1 抽屉", "左边选，右边办这一条"],
+  ["2 Finder 栏", "一张表，列改成路径和用法"],
+  ["3 终端账本", "一行一条可复制的命令"],
+  ["4 按工具", "kubectl、aliyun、ssh 分开"],
+  ["5 来源地图", "主键是目录，不是库内名称"],
+  ["6 单条工作台", "一次只看一条"],
+  ["7 差异条", "只有原文件比库新才出声"],
+  ["8 命令面板", "打字，回车复制命令"],
+  ["9 双栏对照", "家目录有、库里没有，摆在一起"],
+  ["10 档案卡", "一条一张卡，路径做标题"]
+];
+const current = { pick:"prod" };
+function esc(s){ return s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function picked(){ return items.find(x => x.id === current.pick); }
+function sideList(){
+  const groups = [...new Set(items.map(x => x.kind))];
+  return groups.map(g => `<h3>${g}</h3>` + items.filter(x => x.kind===g).map(x =>
+    `<button class="item ${x.id===current.pick?'on':''}" data-pick="${x.id}">${esc(x.name)}<small>${esc(x.path)}</small></button>`
+  ).join('')).join('');
+}
+function detail(x){
+  return `<div class="detail">
+    <div class="kicker">${esc(x.kind)} · ${esc(x.group)}</div>
+    <h3>${esc(x.name)}</h3>
+    <div class="path">${esc(x.path)}</div>
+    ${x.stale ? '<p class="warn">原文件 11-17 改过，库内仍是旧的。编辑原文件不会更新库，要再替换。</p>' : ''}
+    <div class="cmd"><span>${esc(x.cmd)}</span><button class="btn">复制</button></div>
+    <div class="actions">
+      <button class="btn primary">打开原文件</button>
+      <button class="btn">复制命令</button>
+      <button class="btn">替换入库</button>
+      <button class="btn">改说明</button>
+      <button class="btn quiet">删除</button>
+    </div>
+    <dl class="facts">
+      <dt>打开</dt><dd>${esc(x.edit)}</dd>
+      <dt>指纹</dt><dd>${esc(x.fp)}</dd>
+      <dt>入库</dt><dd>2026-11-17</dd>
+    </dl>
+  </div>`;
+}
+function chrome(extra){ return `<div class="chrome"><div class="dots"><i></i><i></i><i></i></div><b>Ferret9</b><span>${extra||'已纳管 27 条'}</span></div>`; }
+function stage(i, inner){
+  const [h, sub] = titles[i];
+  return `<section class="stage ${i===0?'on':''}" data-stage="${i}">
+    <div class="cap"><h2>${h}</h2><p>${sub}</p></div>
+    <div class="win">${chrome(i===7?'回车复制':'已纳管 27 条')}<div class="body">${inner}</div></div>
+    <p class="note">样稿。按钮不会真的改库、不会打开文件。</p>
+  </section>`;
+}
+function render(){
+  const x = picked();
+  const tableRows = items.map(it => `<tr class="${it.stale?'stale':''}">
+      <td>${esc(it.kind)}<span class="sub">${esc(it.name)}</span></td>
+      <td class="mono">${esc(it.path)}</td>
+      <td><button class="btn">${esc(it.group)}</button></td>
+    </tr>`).join('');
+  const term = items.map(it => `<div class="line"><b>${esc(it.name)}</b><em>${esc(it.cmd)}</em>${it.stale?'<span class="flag">原文件较新</span>':'<span></span>'}</div>`).join('');
+  const toolGroups = [...new Set(items.map(it => it.group))].map(g => {
+    const rows = items.filter(it => it.group===g);
+    return `<div class="group"><h3>${esc(g)}</h3><div class="how">${esc(rows[0].edit)}</div><ul>${rows.map(it=>`<li><button data-pick="${it.id}">${esc(it.name)}<span class="sub mono">${esc(it.path)}</span></button></li>`).join('')}</ul></div>`;
+  }).join('');
+  const srcs = [...new Set(items.map(it => it.src))].map(s => `<div class="src"><h3>${esc(s)}</h3><div class="chips">${items.filter(it=>it.src===s).map(it=>`<button class="chip" data-pick="${it.id}"><b>${esc(it.name)}</b><span>${esc(it.cmd)}</span></button>`).join('')}</div></div>`).join('');
+  const rail = items.map(it => `<button class="${it.id===x.id?'on':''}" data-pick="${it.id}">${esc(it.name)}<span class="sub">${esc(it.kind)}</span></button>`).join('');
+  const hits = items.filter(it => /kube|dev|prod|sh/.test(it.id) || it.kind==='kubeconfig').slice(0,4);
+  const html = [
+    stage(0, `<div class="row"><aside class="side">${sideList()}</aside>${detail(x)}</div>`),
+    stage(1, `<table><thead><tr><th>类型 / 名称</th><th>原始路径</th><th>打开</th></tr></thead><tbody>${tableRows}</tbody></table>`),
+    stage(2, `<div class="term"><div class="prompt">coffer — 复制一行即可用，不显示秘密</div>${term}</div>`),
+    stage(3, `<div class="groups">${toolGroups}</div>`),
+    stage(4, srcs),
+    stage(5, `<div class="one"><div class="rail">${rail}</div>${detail(x)}</div>`),
+    stage(6, `<table class="diff"><thead><tr><th>名称</th><th>路径</th><th>库 vs 原文件</th></tr></thead><tbody>${items.map(it=>`<tr class="${it.stale?'stale':''}"><td>${esc(it.name)}</td><td class="mono">${esc(it.path)}</td><td class="${it.stale?'bad':''}">${it.stale?'原文件较新，库内仍是旧的':'一致'}</td></tr>`).join('')}</tbody></table>`),
+    stage(7, `<div class="palette"><input value="kube sh" readonly><div>${hits.map((it,n)=>`<div class="hit"><b>${esc(it.name)}</b><span class="mono">${esc(it.cmd)}</span><kbd>↵</kbd></div>`).join('')}</div></div>`),
+    stage(8, `<div class="split"><section><h3>已入库</h3>${items.slice(0,6).map(it=>`<div class="entry"><span class="mono">${esc(it.path)}</span><span class="tag">在库内</span></div>`).join('')}</section><section><h3>家目录有，库里没有</h3>${outside.map(it=>`<div class="entry"><span><b class="mono">${esc(it.path)}</b><span class="sub">${esc(it.why)}</span></span><span class="tag no">未入库</span></div>`).join('')}</section></div>`),
+    stage(9, `<div class="cards">${items.slice(0,4).map(it=>`<article class="card"><div class="kicker">${esc(it.kind)}</div><b>${esc(it.name)}</b><span class="path">${esc(it.path)}</span><div class="cmd"><span>${esc(it.cmd)}</span></div></article>`).join('')}</div>`)
+  ].join('');
+  document.getElementById('main').innerHTML = html;
+}
+const sw = document.getElementById('switch');
+sw.innerHTML = titles.map((t,i)=>`<button type="button" data-go="${i}" aria-pressed="${i===0}">${t[0]}</button>`).join('');
+sw.addEventListener('click', e => {
+  const b = e.target.closest('[data-go]'); if(!b) return;
+  [...sw.children].forEach(x => x.setAttribute('aria-pressed', x===b));
+  document.querySelectorAll('.stage').forEach(s => s.classList.toggle('on', s.dataset.stage===b.dataset.go));
+});
+document.getElementById('main').addEventListener('click', e => {
+  const b = e.target.closest('[data-pick]'); if(!b) return;
+  current.pick = b.dataset.pick;
+  const on = document.querySelector('.stage.on').dataset.stage;
+  render();
+  document.querySelectorAll('.stage').forEach(s => s.classList.toggle('on', s.dataset.stage===on));
+  document.querySelector(`[data-go="${on}"]`).setAttribute('aria-pressed','true');
+});
+render();
+</script>
+</body>
+</html>

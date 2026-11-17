@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Ferret9 — 布局方案 v2</title>
+<style>
+  :root {
+    --bg: #ECECEF;
+    --card: #FFFFFF;
+    --border: rgba(0,0,0,.12);
+    --fg: #1C1C1E;
+    --muted: #6B6B70;
+    --accent: #E8892A;
+    --danger: #D45D5D;
+    --mono: "SF Mono", "Menlo", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--sans); background: var(--bg); color: var(--fg); min-height: 100vh; padding: 24px; }
+  .window {
+    max-width: 1100px; margin: 0 auto;
+    background: var(--card); border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 12px 40px rgba(0,0,0,.08);
+    overflow: hidden;
+  }
+  .titlebar { padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; font-size: 13px; }
+  .titlebar b { font-weight: 600; }
+  .tb { padding: 14px 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
+  .tb button.primary { background: var(--accent); color: #1a0f05; border: 0; border-radius: 8px; padding: 7px 16px; font-weight: 600; font-size: 13px; }
+  .tb .count { margin-left: auto; font-size: 12px; color: var(--muted); font-weight: 500; }
+  .split { display: grid; grid-template-columns: 1fr 360px; gap: 16px; padding: 16px 20px 20px; min-height: 480px; }
+  .panel { border: 1px solid var(--border); border-radius: 10px; background: #FAFAFB; display: flex; flex-direction: column; min-height: 0; }
+  .panel h2 { margin: 0; padding: 12px 14px 8px; font-size: 13px; font-weight: 600; }
+  .panel.inspector { background: #FFF; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th { text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); background: #F2F2F7; position: sticky; top: 0; }
+  tbody td { padding: 9px 10px; border-bottom: 1px solid rgba(0,0,0,.06); }
+  tbody tr:nth-child(even) { background: rgba(0,0,0,.02); }
+  tbody tr.on { outline: 2px solid var(--accent); outline-offset: -2px; background: rgba(232,137,42,.08); }
+  .mono { font-family: var(--mono); font-size: 11px; }
+  .scroll { overflow: auto; flex: 1; }
+  .field { display: grid; grid-template-columns: 64px 1fr auto; gap: 10px; align-items: start; padding: 0 16px 12px; }
+  .field label { font-size: 11px; font-weight: 600; color: var(--muted); padding-top: 8px; }
+  .field input, .field textarea { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; font-size: 12px; font-family: inherit; }
+  .field .mono input { font-family: var(--mono); font-size: 11px; }
+  .field textarea { min-height: 52px; resize: vertical; }
+  .field button { border: 1px solid var(--border); background: #F2F2F7; border-radius: 6px; padding: 6px 10px; font-size: 11px; white-space: nowrap; }
+  .field button.save { background: var(--accent); border-color: transparent; color: #1a0f05; font-weight: 600; }
+  .field button.del { color: var(--danger); margin: 8px 16px 16px auto; display: block; }
+  .insp-body { padding-top: 4px; }
+</style>
+</head>
+<body>
+  <div class="window">
+    <div class="titlebar"><b>Ferret9</b> — config.json-default</div>
+    <div class="tb"><button class="primary" type="button">导入</button><span class="count">已纳管 27 条</span></div>
+    <div class="split">
+      <div class="panel">
+        <h2>已纳管配置</h2>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>名称</th><th>类型</th><th>说明</th><th>原始路径</th></tr></thead>
+            <tbody>
+              <tr class="on"><td>config.json-default</td><td>aliyun</td><td>示例云账号</td><td class="mono">~/.aliyun/config.json</td></tr>
+              <tr><td>example-app</td><td>aliyun</td><td>Example App</td><td class="mono">~/.aliyun/config.json-app</td></tr>
+              <tr><td>dev</td><td>kubeconfig</td><td>示例开发集群</td><td class="mono">~/.kube/config-dev</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel inspector">
+        <h2>详情</h2>
+        <div class="insp-body">
+          <div class="field"><label>CLI</label><input readonly value="aliyun cli"/><span></span></div>
+          <div class="field"><label>说明</label><textarea>示例云账号</textarea><button class="save" type="button">保存</button></div>
+          <div class="field mono"><label>路径</label><input readonly value="~/.aliyun/config.json"/><button type="button">Finder</button></div>
+          <div class="field mono"><label>命令</label><input readonly value="aliyun --config-path ~/.aliyun/config.json configure list"/><button type="button">测试</button></div>
+          <button class="del" type="button">删除</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:16px">设计稿 v2 · 主列表 + Inspector · 琥珀主色 · 见 docs/ferret9-design.md</p>
+</body>
+</html>

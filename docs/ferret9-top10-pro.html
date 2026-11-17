@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ferret9 · 10 套专业界面方案</title>
+<style>
+  :root {
+    --bg: #0c0e12;
+    --bg-elevated: #13161d;
+    --bg-soft: #1a1f28;
+    --fg: #e8ecf1;
+    --fg-muted: #8b95a8;
+    --fg-faint: #5c6578;
+    --border: rgba(255,255,255,.08);
+    --border-strong: rgba(255,255,255,.14);
+    --accent: #e8892a;
+    --accent-dim: rgba(232,137,42,.15);
+    --cream: #f3e6c8;
+    --brown: #6b4423;
+    --ok: #3d9a6f;
+    --warn: #c9a227;
+    --danger: #d45d5d;
+    --radius: 10px;
+    --radius-lg: 14px;
+    --mono: "SF Mono", ui-monospace, Menlo, monospace;
+    --sans: -apple-system, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  .shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+  .nav {
+    border-right: 1px solid var(--border);
+    padding: 20px 14px 28px;
+    background: linear-gradient(180deg, #10141c 0%, var(--bg) 100%);
+    position: sticky; top: 0; height: 100vh; overflow: auto;
+  }
+  .brand { display: flex; gap: 12px; align-items: center; padding: 4px 8px 18px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .app-icon {
+    width: 44px; height: 44px; border-radius: 11px;
+    object-fit: contain;
+    flex-shrink: 0;
+    background: #efe6d4;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.25), 0 8px 20px rgba(232,137,42,.2);
+  }
+  .app-icon.sm { width: 24px; height: 24px; border-radius: 6px; margin-left: 6px; }
+  .brand h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.02em; }
+  .brand p { margin: 2px 0 0; font-size: 11px; color: var(--fg-muted); }
+  .nav label { display: block; font-size: 10px; font-weight: 600; letter-spacing: .06em; color: var(--fg-faint); margin: 14px 8px 6px; }
+  .nav button {
+    display: block; width: 100%; text-align: left;
+    border: 0; background: transparent; border-radius: 8px;
+    padding: 8px 10px; color: var(--fg-muted); font-size: 12.5px;
+  }
+  .nav button:hover { background: rgba(255,255,255,.04); color: var(--fg); }
+  .nav button[aria-current="true"] {
+    background: var(--accent-dim); color: var(--fg);
+    box-shadow: inset 0 0 0 1px rgba(232,137,42,.35);
+  }
+  .nav button span { display: block; font-size: 10px; color: var(--fg-faint); margin-top: 2px; }
+  .main { padding: 28px 32px 48px; max-width: 1120px; }
+  .hero { margin-bottom: 22px; }
+  .hero h2 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.03em; }
+  .hero p { margin: 8px 0 0; color: var(--fg-muted); max-width: 62ch; font-size: 13.5px; }
+  .frame {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0,0,0,.45);
+  }
+  .titlebar {
+    display: flex; align-items: center; gap: 10px;
+    height: 40px; padding: 0 14px;
+    background: var(--bg-soft);
+    border-bottom: 1px solid var(--border);
+  }
+  .lights { display: flex; gap: 7px; }
+  .lights i { width: 11px; height: 11px; border-radius: 50%; display: block; }
+  .lights i:nth-child(1){ background:#ff5f57; }
+  .lights i:nth-child(2){ background:#febc2e; }
+  .lights i:nth-child(3){ background:#28c840; }
+  .titlebar b { font-size: 12px; font-weight: 600; margin-left: 4px; }
+  .titlebar em { margin-left: auto; font-style: normal; font-size: 11px; color: var(--fg-faint); }
+  .viewport { min-height: 520px; background: #0f1218; }
+  .foot { margin-top: 12px; font-size: 11px; color: var(--fg-faint); }
+  .stage { display: none; }
+  .stage.on { display: block; }
+
+  /* shared components */
+  .tb { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border); background: #12151c; align-items: center; }
+  .tb .primary { background: var(--accent); color: #1a0f05; border-color: transparent; font-weight: 600; }
+  .tb button, .tb .ghost {
+    border: 1px solid var(--border); background: rgba(255,255,255,.03);
+    border-radius: 7px; padding: 5px 10px; font-size: 12px; color: var(--fg-muted);
+  }
+  .tb .spacer { flex: 1; }
+  .tb .count { font-size: 11px; color: var(--fg-faint); font-family: var(--mono); }
+  .split { display: grid; grid-template-columns: 300px 1fr; min-height: 480px; }
+  .rail { border-right: 1px solid var(--border); background: #0e1117; }
+  .rail .search {
+    margin: 10px; width: calc(100% - 20px);
+    border: 1px solid var(--border); background: #0a0c10;
+    border-radius: 8px; padding: 7px 10px; color: var(--fg);
+    outline: none;
+  }
+  .rail .search:focus { border-color: rgba(232,137,42,.5); box-shadow: 0 0 0 3px var(--accent-dim); }
+  .row-item {
+    display: grid; grid-template-columns: 1fr auto; gap: 4px 8px;
+    padding: 9px 12px; border-bottom: 1px solid var(--border);
+    text-align: left; width: 100%; border-left: 0; border-right: 0; border-top: 0;
+    background: transparent; color: inherit;
+  }
+  .row-item.on { background: rgba(232,137,42,.08); box-shadow: inset 3px 0 var(--accent); }
+  .row-item .name { font-weight: 600; font-size: 13px; }
+  .row-item .sub { font-family: var(--mono); font-size: 10.5px; color: var(--fg-faint); grid-column: 1 / -1; }
+  .row-item .badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,.06); color: var(--fg-muted); }
+  .pane { padding: 22px 26px; overflow: auto; }
+  .pane .type { font-size: 11px; color: var(--accent); font-weight: 600; text-transform: none; }
+  .pane h3 { margin: 6px 0 4px; font-size: 24px; letter-spacing: -.03em; }
+  .pane .note { margin: 10px 0; color: var(--fg-muted); font-size: 12.5px; line-height: 1.5; }
+  .pane .field { margin-top: 14px; }
+  .pane .field-label {
+    font-size: 10px; font-weight: 600; letter-spacing: .05em;
+    color: var(--fg-faint); margin-bottom: 6px;
+  }
+  .desc-block {
+    padding: 10px 12px; border-radius: var(--radius);
+    background: rgba(232,137,42,.08);
+    border: 1px solid rgba(232,137,42,.22);
+    font-size: 13px; line-height: 1.5; color: var(--fg);
+  }
+  .desc-block.empty { color: var(--fg-faint); font-style: normal; border-style: dashed; background: transparent; }
+  .row-item .sub.path-only { font-family: var(--mono); font-size: 10.5px; }
+  .pane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .pane-head h3 { margin: 0; font-size: 22px; }
+  .cli-kind {
+    display: flex; align-items: center; gap: 8px; flex: 1; max-width: 280px;
+  }
+  .cli-kind label { font-size: 11px; color: var(--fg-faint); white-space: nowrap; }
+  .cli-kind input, .inline-row input, .inline-row textarea {
+    flex: 1; border: 1px solid var(--border); border-radius: 8px;
+    background: #0a0c10; color: var(--fg); padding: 7px 10px; font-size: 12px;
+  }
+  .inline-row textarea { min-height: 52px; resize: vertical; font-family: var(--sans); line-height: 1.4; }
+  .inline-row {
+    display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px;
+  }
+  .inline-row .lbl {
+    width: 88px; flex-shrink: 0; font-size: 11px; font-weight: 600;
+    color: var(--fg-faint); padding-top: 8px; text-align: right;
+  }
+  .inline-row .grow { flex: 1; min-width: 0; display: flex; gap: 8px; align-items: flex-start; }
+  .inline-row .grow.mono input { font-family: var(--mono); font-size: 11px; }
+  .inline-row button {
+    flex-shrink: 0; border: 1px solid var(--border); background: #151922;
+    border-radius: 8px; padding: 6px 10px; font-size: 11px; color: var(--fg-muted);
+  }
+  .inline-row button.danger { color: var(--danger); border-color: rgba(212,93,93,.4); }
+  .inline-row button.accent { background: var(--accent); color: #1a0f05; border-color: transparent; font-weight: 600; }
+  .pane-foot { margin-top: 14px; display: flex; justify-content: flex-end; gap: 8px; }
+  .import-sheet {
+    position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 20;
+    display: none; align-items: center; justify-content: center; padding: 24px;
+  }
+  .import-sheet.on { display: flex; }
+  .import-box {
+    width: min(440px, 100%); background: var(--bg-elevated); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: 0 24px 80px rgba(0,0,0,.5);
+  }
+  .import-box h4 { margin: 0 0 12px; font-size: 15px; }
+  .import-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .import-tabs button { border: 1px solid var(--border); background: transparent; border-radius: 8px; padding: 5px 12px; font-size: 12px; color: var(--fg-muted); }
+  .import-tabs button.on { background: var(--accent-dim); border-color: rgba(232,137,42,.4); color: var(--fg); }
+  .import-field { margin-bottom: 10px; }
+  .import-field label { display: block; font-size: 10px; color: var(--fg-faint); margin-bottom: 4px; }
+  .import-field input { width: 100%; border: 1px solid var(--border); border-radius: 8px; background: #0a0c10; padding: 7px 10px; color: var(--fg); }
+  .import-field .req::after { content: " *"; color: var(--accent); }
+  .codebox {
+    margin: 14px 0; padding: 11px 12px; border-radius: var(--radius);
+    background: #0a0d12; border: 1px solid var(--border);
+    font-family: var(--mono); font-size: 11.5px; display: flex; gap: 12px; align-items: flex-start;
+  }
+  .codebox span { flex: 1; color: #b8c4d4; }
+  .codebox button { flex-shrink: 0; font-size: 11px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: #151922; color: var(--fg-muted); }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .actions .p { background: var(--accent); color: #1a0f05; border: 0; border-radius: 8px; padding: 7px 12px; font-weight: 600; }
+  .actions button { border: 1px solid var(--border); background: #151922; border-radius: 8px; padding: 7px 12px; color: var(--fg-muted); }
+  .meta { display: grid; grid-template-columns: 72px 1fr; gap: 6px 12px; margin-top: 20px; font-size: 12px; }
+  .meta dt { color: var(--fg-faint); margin: 0; }
+  .meta dd { margin: 0; font-family: var(--mono); font-size: 11px; }
+  .warnline { margin-top: 12px; padding: 8px 10px; border-radius: 8px; background: rgba(201,162,39,.12); color: #e8c96a; font-size: 12px; border: 1px solid rgba(201,162,39,.25); }
+
+  table.data { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.data th {
+    text-align: left; padding: 10px 14px; font-size: 10px; font-weight: 600;
+    color: var(--fg-faint); border-bottom: 1px solid var(--border); background: #12151c;
+    position: sticky; top: 0;
+  }
+  table.data td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.data tr:hover td { background: rgba(255,255,255,.02); }
+  table.data tr.on td { background: rgba(232,137,42,.06); }
+  table.data .mono { font-family: var(--mono); font-size: 11px; color: #a8b4c8; }
+  table.data .kind { color: var(--fg-muted); }
+
+  .term { padding: 16px; font-family: var(--mono); font-size: 12px; line-height: 1.55; }
+  .term .head { color: var(--accent); margin-bottom: 12px; }
+  .term .line { display: grid; grid-template-columns: 140px 1fr auto; gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.05); align-items: baseline; }
+  .term .line b { color: var(--fg); font-weight: 500; }
+  .term .line em { color: #8fa3be; font-style: normal; }
+  .term .flag { color: var(--warn); font-size: 10px; }
+
+  .pal { padding: 20px 24px; }
+  .pal input {
+    width: 100%; font-size: 28px; font-weight: 300; letter-spacing: -.02em;
+    border: 0; border-bottom: 1px solid var(--border-strong); background: transparent;
+    padding: 12px 2px 16px; color: var(--fg); outline: none;
+  }
+  .pal input::placeholder { color: var(--fg-faint); }
+  .hit { display: grid; grid-template-columns: 160px 1fr 48px; gap: 14px; padding: 12px 2px; border-bottom: 1px solid var(--border); align-items: center; }
+  .hit .cmd { font-family: var(--mono); font-size: 11px; color: var(--fg-muted); }
+  .hit kbd { font-family: var(--mono); font-size: 10px; border: 1px solid var(--border); border-radius: 5px; padding: 3px 7px; color: var(--fg-faint); text-align: center; }
+
+  .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 16px; }
+  .card {
+    background: #12151c; border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+  }
+  .card:hover { border-color: rgba(232,137,42,.35); }
+  .card .k { font-size: 10px; color: var(--accent); font-weight: 600; }
+  .card h4 { margin: 6px 0 4px; font-size: 15px; }
+  .card .path { display: block; font-family: var(--mono); font-size: 10.5px; color: var(--fg-faint); margin-bottom: 10px; }
+  .card .mini { font-family: var(--mono); font-size: 10px; color: #8896ab; background: #0a0c10; padding: 8px; border-radius: 6px; }
+
+  .group3 { display: grid; grid-template-columns: repeat(3,1fr); min-height: 480px; }
+  .group3 section { padding: 14px; border-right: 1px solid var(--border); }
+  .group3 h4 { margin: 0 0 4px; font-size: 13px; }
+  .group3 .hint { font-family: var(--mono); font-size: 10px; color: var(--fg-faint); margin-bottom: 10px; }
+  .group3 ul { margin: 0; padding: 0; list-style: none; }
+  .group3 li button {
+    display: block; width: 100%; text-align: left; border: 0; background: transparent;
+    padding: 6px 0; font-size: 12px; color: var(--fg-muted);
+  }
+  .group3 li button:hover { color: var(--fg); }
+
+  .compare { display: grid; grid-template-columns: 1fr 1fr; }
+  .compare > div { padding: 14px 0; }
+  .compare > div + div { border-left: 1px solid var(--border); padding-left: 16px; }
+  .compare h4 { margin: 0 12px 10px; font-size: 12px; color: var(--fg-muted); }
+  .entry { display: flex; justify-content: space-between; gap: 10px; padding: 7px 12px; font-size: 12px; }
+  .entry .tag { font-size: 10px; color: var(--ok); }
+  .entry .tag.no { color: var(--warn); }
+  .entry .mono { font-family: var(--mono); font-size: 11px; }
+
+  @media (max-width: 960px) {
+    .shell { grid-template-columns: 1fr; }
+    .nav { position: relative; height: auto; }
+    .split, .group3, .compare, .cards { grid-template-columns: 1fr; }
+    .term .line, .hit { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="nav" id="nav"></aside>
+<div class="main">
+  <header class="hero" id="hero"></header>
+  <div class="frame">
+    <div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><img class="app-icon sm" src="app-icon.png" alt="" /><b>Ferret9</b><em id="tb-meta">已纳管 27 条 · 样稿</em></div>
+    <div class="viewport" id="viewport"></div>
+  </div>
+  <p class="foot">交互为演示。路径与命令来自你本机样例，不含密钥。左侧切换 10 套信息架构；正式 App 可择一套落 SwiftUI/AppKit。</p>
+</div>
+</div>
+<script>
+const items = [
+  { id:"dev", name:"config-dev", kind:"kubeconfig", tool:"kubectl", path:"~/.kube/config-dev", cmd:"kubectl --kubeconfig ~/.kube/config-dev get ns", edit:"编辑器或 kubectl", fp:"92ef8657d286", stale:false, detail:"ACK 示例开发集群上下文" },
+  { id:"prod", name:"config-prod", kind:"kubeconfig", tool:"kubectl", path:"~/.kube/config-prod", cmd:"kubectl --kubeconfig ~/.kube/config-prod get ns", edit:"编辑器或 kubectl", fp:"75d7c99107", stale:true, detail:"示例生产集群" },
+  { id:"ksh", name:"config-staging", kind:"kubeconfig", tool:"kubectl", path:"~/.kube/config-staging", cmd:"kubectl --kubeconfig ~/.kube/config-staging get ns", edit:"编辑器或 kubectl", fp:"8c3c125ba8", stale:false, detail:"示例预发布" },
+  { id:"ali", name:"example-app", kind:"aliyun", tool:"aliyun", cli:"aliyun cli", path:"~/.aliyun/config.json-app", cmd:"aliyun --config-path ~/.aliyun/config.json-app configure list", edit:"aliyun configure", fp:"a91c0e44", stale:false, detail:"Example App 示例账号" },
+  { id:"ee", name:"config.json-default", kind:"aliyun", tool:"aliyun", path:"~/.aliyun/config.json", cmd:"aliyun --config-path ~/.aliyun/config.json configure list", edit:"aliyun configure", fp:"c02aa19", stale:false, detail:"示例环境" },
+  { id:"oss", name:"ossutil-example", kind:"ossutil", tool:"ossutil", path:"~/.ossutilconfig", cmd:"ossutil -c ~/.ossutilconfig ls", edit:"ossutil -c", fp:"44b1e0aa", stale:false, detail:"示例 OSS" },
+  { id:"cf", name:"example-dns", kind:"cloudflare", tool:"编辑器", path:"~/.cloudflare/config.yaml", cmd:"open ~/.cloudflare/config.yaml", edit:"无 wrangler，仅文件", fp:"9247ac5c", stale:false, detail:"Cloudflare API 配置" },
+  { id:"gh", name:"example-readonly", kind:"token", tool:"gh", path:"~/.github/example-readonly.yaml", cmd:"gh auth status", edit:"gh 读钥匙串", fp:"2325ad7c", stale:false, detail:"GitHub 只读 token 文件" },
+  { id:"key", name:"id_ed25519", kind:"private-key", tool:"ssh", path:"~/.ssh/id_ed25519", cmd:"ssh -i ~/.ssh/id_ed25519 user@host", edit:"勿用文本编辑器改私钥", fp:"0aa13c", stale:false, detail:"默认 SSH 密钥" },
+  { id:"redis", name:"example-cache", kind:"redis", tool:"redis-cli", path:"~/.redis/config.yaml", cmd:"redis-cli -h <host>", edit:"host 见配置文件", fp:"f2c314b1", stale:false, detail:"示例 Redis 条目" }
+];
+const outside = [
+  { path:"~/.docker/config.json", why:"凭据在钥匙串" },
+  { path:"~/.config/example-api-key", why:"识别器未收录" },
+  { path:"~/.aliyun/config.json-readonly", why:"本次未入库" }
+];
+const schemes = [
+  { id:0, t:"01 · 指挥官", s:"顶栏操作 + 左列表右工作台（推荐落 App）", d:"把 10 个圆角按钮收成一组主次操作，列表只保留名称/类型/路径，详情区展示说明与可复制命令。" },
+  { id:1, t:"02 · 数据表", s:"Finder 级宽表，一眼扫 27 条", d:"冻结表头、行 hover、路径等宽字体；适合运维向批量核对。" },
+  { id:2, t:"03 · 终端账本", s:"暗色终端美学，一行一条命令", d:"强调「复制即可用」，弱化装饰；与 coffer CLI 心智一致。" },
+  { id:3, t:"04 · 工具分区", s:"按 kubectl / aliyun / ssh 分栏", d:"减少长列表滚动，按真实 CLI 工具组织。" },
+  { id:4, t:"05 · 来源地图", s:"主键是家目录路径", d:"先选 ~/.kube 再选条目，贴合「文件从哪来」。" },
+  { id:5, t:"06 · 聚焦", s:"侧栏窄列表 + 大详情", d:"一次只处理一条，改说明/测试/替换时干扰最小。" },
+  { id:6, t:"07 · 同步状态", s:"仅对「原文件较新」高亮", d:"库内快照 vs 磁盘文件的差异一眼可见。" },
+  { id:7, t:"08 · 命令面板", s:"Raycast 式搜索优先", d:"⌘K 心智：输入 kube / ee / ssh 过滤，回车复制命令。" },
+  { id:8, t:"09 · 覆盖图", s:"已入库 vs 未入库并排", d:"盘点家目录还有哪些该纳入 Ferret9。" },
+  { id:9, t:"10 · 档案卡", s:"瀑布卡片，路径即标题", d:"每条像名片，适合 touchscreen 或预览模式。" }
+];
+let pick = "ee";
+let stage = 0;
+function esc(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+function X(){ return items.find(x=>x.id===pick) || items[0]; }
+
+function cliLabel(x){ return (x.cli||x.tool||'').trim() || '—'; }
+function toolbar(){
+  return `<div class="tb"><button class="primary" type="button" data-import-open>导入</button><span class="spacer"></span><span class="count">27 managed</span></div>`;
+}
+function detailPane(x){
+  const desc = esc((x.detail||'').trim());
+  const path = esc(x.path);
+  const cmd = esc(x.cmd);
+  const cli = esc(cliLabel(x));
+  return `<div class="pane" data-detail="${esc(x.id)}">
+    <div class="pane-head"><h3>${esc(x.name)}</h3></div>
+    <div class="inline-row cli-kind"><span class="lbl">CLI</span><div class="grow"><input type="text" value="${cli}" data-field="cli" aria-label="CLI 工具名" /><button type="button" class="accent" data-save-detail>保存</button></div></div>
+    <div class="inline-row"><span class="lbl">说明</span><div class="grow"><textarea data-field="desc">${desc}</textarea></div></div>
+    <div class="inline-row"><span class="lbl">原始路径</span><div class="grow mono"><input type="text" value="${path}" readonly data-field="path" /><button type="button" data-finder>在 Finder 中打开</button></div></div>
+    ${x.stale ? '<div class="warnline">原文件较库内新，需替换入库后才会一致。</div>' : ''}
+    <div class="inline-row"><span class="lbl">测试命令</span><div class="grow mono"><input type="text" value="${cmd}" data-field="cmd" /><button type="button" data-test-cmd>运行测试</button></div></div>
+    <div class="pane-foot"><button type="button" class="danger" data-del>删除</button></div>
+  </div>`;
+}
+function importSheetHtml(){
+  return `<div class="import-sheet" id="import-sheet"><div class="import-box"><h4>导入</h4>
+    <div class="import-tabs"><button type="button" class="on" data-tab="file">选择文件</button><button type="button" data-tab="paste">粘贴内容</button></div>
+    <div data-panel="file"><p style="margin:0 0 10px;color:var(--fg-muted);font-size:12px">选择本机配置文件，识别后勾选入库。</p><button type="button" class="accent" style="padding:8px 14px;border:0;border-radius:8px">选取文件…</button></div>
+    <div data-panel="paste" hidden>
+      <div class="import-field"><label class="req">文件名</label><input placeholder="config.json-app" /></div>
+      <div class="import-field"><label class="req">放入目录</label><input placeholder="~/.aliyun" /></div>
+      <div class="import-field"><label>说明</label><input placeholder="可选" /></div>
+      <div class="import-field"><label>类型</label><input placeholder="aliyun / kubeconfig …" /></div>
+      <div class="import-field"><label>粘贴正文</label><textarea rows="4" style="width:100%;border:1px solid var(--border);border-radius:8px;background:#0a0c10;color:var(--fg);padding:8px;font-size:12px"></textarea></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px"><button type="button" data-import-close>取消</button><button type="button" class="accent" style="padding:6px 12px;border:0;border-radius:8px">分析并入库</button></div>
+  </div></div>`;
+}
+function railList(filter){
+  const list = filter ? items.filter(filter) : items;
+  return list.map(it=>{
+    return `<button type="button" class="row-item ${it.id===pick?'on':''}" data-pick="${it.id}"><span class="name">${esc(it.name)}</span><span class="badge">${esc(it.kind)}</span><span class="sub path-only">${esc(it.path)}</span></button>`;
+  }).join('');
+}
+
+function renderStage(){
+  const x = X();
+  const inner = [
+    ()=> toolbar() + `<div class="split" style="grid-template-columns:1fr 300px"><div>${detailPane(x)}</div><div class="rail"><input class="search" placeholder="过滤名称或路径…" readonly>${railList()}</div></div>`,
+    ()=> toolbar() + `<table class="data"><thead><tr><th>名称</th><th>类型</th><th>说明</th><th>原始路径</th><th>用法</th></tr></thead><tbody>${items.map(it=>`<tr class="${it.id===pick?'on':''}" data-pick="${it.id}"><td><b>${esc(it.name)}</b></td><td class="kind">${esc(it.kind)}</td><td style="max-width:160px">${esc((it.detail||'').trim()||'—')}</td><td class="mono">${esc(it.path)}</td><td>${esc(it.tool)}</td></tr>`).join('')}</tbody></table>`,
+    ()=> `<div class="term"><div class="head">$ coffer list — 仅命令，不含秘密</div>${items.map(it=>`<div class="line"><b>${esc(it.name)}</b><em>${esc(it.cmd)}</em>${it.stale?'<span class="flag">stale</span>':''}</div>`).join('')}</div>`,
+    ()=>{ const tools=[...new Set(items.map(i=>i.tool))]; return `<div class="group3">${tools.map(t=>{ const rows=items.filter(i=>i.tool===t); return `<section><h4>${esc(t)}</h4><div class="hint">${esc(rows[0]?.edit||'')}</div><ul>${rows.map(it=>`<li><button type="button" data-pick="${it.id}">${esc(it.name)} <span class="sub">${esc(it.path)}</span></button></li>`).join('')}</ul></section>`; }).join('')}</div>`; },
+    ()=>{ const srcs=[...new Set(items.map(i=>i.path.split('/').slice(0,3).join('/')||i.path))]; return `<div class="pal" style="padding-top:12px">${[...new Set(items.map(i=>{const p=i.path; if(p.startsWith('~/.kube'))return '~/.kube'; if(p.startsWith('~/.aliyun'))return '~/.aliyun'; if(p.startsWith('~/.ssh'))return '~/.ssh'; if(p.startsWith('~/.github'))return '~/.github'; return p.replace(/\/[^/]+$/,'');}))].map(s=>`<h4 style="margin:16px 16px 8px;font-size:12px;color:var(--fg-muted)">${esc(s)}</h4><div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr));padding:0 12px 16px">${items.filter(it=>it.path.startsWith(s.replace(/\.\./,''))|| (s==='~/.kube'&&it.path.startsWith('~/.kube'))||(s==='~/.aliyun'&&it.path.startsWith('~/.aliyun'))||(s==='~/.ssh'&&it.path.startsWith('~/.ssh'))||(s==='~/.github'&&it.path.startsWith('~/.github'))).map(it=>`<article class="card" data-pick="${it.id}"><motion></article>`).join('')}</div>`).join('')}</div>`; },
+  ];
+  // fix stage 4 with simpler src grouping
+  inner[4] = ()=>{
+    const buckets = {"~/.kube":[], "~/.aliyun":[], "~/.ssh":[], "~/.github":[], "其他":[]};
+    items.forEach(it=>{
+      let k = "其他";
+      if(it.path.startsWith("~/.kube")) k="~/.kube";
+      else if(it.path.startsWith("~/.aliyun")) k="~/.aliyun";
+      else if(it.path.startsWith("~/.ssh")) k="~/.ssh";
+      else if(it.path.startsWith("~/.github")) k="~/.github";
+      buckets[k].push(it);
+    });
+    return Object.entries(buckets).filter(([,v])=>v.length).map(([k,rows])=>`<h4 style="margin:18px 16px 8px;font-size:12px;color:var(--fg-muted)">${esc(k)}</h4><div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));padding:0 14px 8px">${rows.map(it=>`<article class="card" data-pick="${it.id}"><motion></article>`).join('')}</div>`).join('');
+  };
+  const card = (it)=>`<article class="card" data-pick="${it.id}"><motion></article>`.replace('<motion></motion>', `<div class="k">${esc(it.kind)}</div><h4>${esc(it.name)}</h4><span class="path">${esc(it.path)}</span><div class="mini">${esc(it.cmd)}</div>`);
+  inner[4] = ()=>{
+    const buckets = {"~/.kube":[], "~/.aliyun":[], "~/.ssh":[], "~/.github":[], "其他":[]};
+    items.forEach(it=>{
+      let k = "其他";
+      if(it.path.startsWith("~/.kube")) k="~/.kube";
+      else if(it.path.startsWith("~/.aliyun")) k="~/.aliyun";
+      else if(it.path.startsWith("~/.ssh")) k="~/.ssh";
+      else if(it.path.startsWith("~/.github")) k="~/.github";
+      buckets[k].push(it);
+    });
+    return Object.entries(buckets).filter(([,v])=>v.length).map(([k,rows])=>`<h4 style="margin:18px 16px 8px;font-size:12px;color:var(--fg-muted)">${esc(k)}</h4><div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));padding:0 14px 8px">${rows.map(it=>card(it)).join('')}</div>`).join('');
+  };
+  inner[5] = ()=> `<div class="split"><div class="rail" style="width:220px">${railList()}</div>${detailPane(x)}</div>`;
+  inner[6] = ()=> `<table class="data"><thead><tr><th>名称</th><th>路径</th><th>同步</th></tr></thead><tbody>${items.map(it=>`<tr class="${it.stale?'on':''}"><td>${esc(it.name)}</td><td class="mono">${esc(it.path)}</td><td>${it.stale?'<span style="color:var(--warn)">原文件较新</span>':'<span style="color:var(--ok)">一致</span>'}</td></tr>`).join('')}</tbody></table>`;
+  inner[7] = ()=> `<div class="pal"><input value="ee aliyun" readonly placeholder="搜索凭据…"><div>${items.slice(0,5).map(it=>`<div class="hit" data-pick="${it.id}"><b>${esc(it.name)}</b><span class="cmd">${esc(it.cmd)}</span><kbd>⏎</kbd></div>`).join('')}</div></div>`;
+  inner[8] = ()=> `<div class="compare"><div><h4>已入库</h4>${items.slice(0,6).map(it=>`<div class="entry"><span class="mono">${esc(it.path)}</span><span class="tag">在库</span></div>`).join('')}</div><div><h4>家目录有 · 未入库</h4>${outside.map(it=>`<div class="entry"><span><span class="mono">${esc(it.path)}</span><br><span style="color:var(--fg-faint);font-size:11px">${esc(it.why)}</span></span><span class="tag no">未入库</span></div>`).join('')}</div></div>`;
+  inner[9] = ()=> `<div class="cards" style="grid-template-columns:repeat(2,1fr)">${items.slice(0,6).map(it=>card(it)).join('')}</div>`;
+  return inner[stage]();
+}
+
+function render(){
+  const sc = schemes[stage];
+  document.getElementById('nav').innerHTML = `<div class="brand"><img class="app-icon" src="app-icon.png" alt="Ferret9" /><div><h1>Ferret9</h1><p>界面方案 · 10</p></div></div><label>信息架构</label>` + schemes.map(s=>`<button type="button" data-stage="${s.id}" aria-current="${s.id===stage}">${esc(s.t)}<span>${esc(s.s)}</span></button>`).join('');
+  document.getElementById('hero').innerHTML = `<h2>${esc(sc.t)}</h2><p>${esc(sc.d)}</p>`;
+  document.getElementById('viewport').innerHTML = renderStage();
+  let sheet = document.getElementById('import-sheet');
+  if(!sheet){ sheet = document.createElement('div'); sheet.id = 'import-sheet-root'; document.body.appendChild(sheet); }
+  sheet.innerHTML = importSheetHtml();
+}
+
+function syncItemFromPane(pane){
+  const id = pane.dataset.detail;
+  const it = items.find(x=>x.id===id);
+  if(!it) return;
+  const desc = pane.querySelector('[data-field="desc"]');
+  const cli = pane.querySelector('[data-field="cli"]');
+  const cmd = pane.querySelector('[data-field="cmd"]');
+  if(desc) it.detail = desc.value;
+  if(cli){ it.cli = cli.value; it.tool = cli.value; }
+  if(cmd) it.cmd = cmd.value;
+}
+
+document.body.addEventListener('click', e=>{
+  const st = e.target.closest('[data-stage]');
+  if(st){ stage = +st.dataset.stage; render(); return; }
+  const pk = e.target.closest('[data-pick]');
+  if(pk){ pick = pk.dataset.pick; render(); return; }
+  if(e.target.closest('[data-import-open]')){
+    document.querySelector('.import-sheet')?.classList.add('on'); return;
+  }
+  if(e.target.closest('[data-import-close]')){
+    document.querySelector('.import-sheet')?.classList.remove('on'); return;
+  }
+  if(e.target.closest('[data-tab]')){
+    const tab = e.target.dataset.tab;
+    document.querySelectorAll('.import-tabs button').forEach(b=>b.classList.toggle('on', b.dataset.tab===tab));
+    document.querySelector('[data-panel="file"]').hidden = tab !== 'file';
+    document.querySelector('[data-panel="paste"]').hidden = tab !== 'paste';
+    return;
+  }
+  if(e.target.closest('[data-save-detail]')){
+    const pane = e.target.closest('[data-detail]');
+    if(pane){ syncItemFromPane(pane); alert('说明已保存（样稿演示）'); }
+    return;
+  }
+  if(e.target.closest('[data-finder]')){
+    alert('将在 Finder 中显示该路径的父文件夹（样稿）'); return;
+  }
+  if(e.target.closest('[data-test-cmd]')){
+    const pane = e.target.closest('[data-detail]');
+    const cmd = pane?.querySelector('[data-field="cmd"]')?.value;
+    alert(cmd ? '将运行：'+cmd+'\n（样稿，需管理员授权）' : '无命令'); return;
+  }
+  if(e.target.closest('[data-del]')){
+    if(confirm('删除这条凭据？')) alert('样稿：未真正删除'); return;
+  }
+});
+render();
+</script>
+</body>
+</html>
