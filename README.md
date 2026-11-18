@@ -143,6 +143,14 @@ Hermes 安装时会带上 `SKILL.md` 引用的 `references/`。装完要新开�
 
 变的是 agent 的选凭据方式。新开会话并加载 `skills/ferret9` 之后，查集群、云、DNS、OSS 时会先跑 `ferret9 list`，按说明列挑选，不再自己去翻家目录里的密钥文件。你点名某个配置文件并明确要求直接用它，这条限制不适用。
 
+要堵住「绕过 Ferret9、把密钥文件读进对话」，不用克隆仓库，跑一条命令：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/pengzuhao/ferret9/main/scripts/install-guard.sh | bash
+```
+
+它只给本机装了的 agent 写拦截，写完用样本验证，收尾一行写明装了几个、跳过几个、失败几个。细节和「交给模型去装」的提示词见 [docs/block-direct-credential-reads.md](docs/block-direct-credential-reads.md)。拦的是读进对话，不是官方命令自己读文件。
+
 ## 构建
 
 ```bash
