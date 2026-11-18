@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires the ferret9 command and its macOS service. List output has no secrets.
 metadata:
   author: Ferret9
-  version: "0.1.0"
+  version: "0.0.1"
 ---
 
 # Ferret9 凭据目录

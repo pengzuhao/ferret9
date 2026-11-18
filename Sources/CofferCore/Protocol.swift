@@ -6,7 +6,7 @@ public enum CofferPaths {
     public static let serviceUser = "_ferret9"
     public static let label = "com.ferret9.service"
     public static let right = "com.ferret9.manage"
-    public static let version = "0.1.0"
+    public static let version = "0.0.1"
 }
 
 public enum CofferError: Error, Equatable, LocalizedError {

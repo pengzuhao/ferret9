@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+VER="$(sed -n 's/.*static let version = "\([^"]*\)".*/\1/p' "$ROOT/Sources/CofferCore/Protocol.swift")"
+test -n "$VER"
 STAGE="$(mktemp -d /tmp/ferret9-pkg.XXXXXX)"
 BIN="$STAGE/bin"
 bash "$ROOT/scripts/build.sh" "$BIN"
@@ -52,15 +54,15 @@ cat > "$APP/Contents/Info.plist" <<EOF
 <key>CFBundleIdentifier</key><string>com.ferret9.app</string>
 <key>CFBundleName</key><string>Ferret9</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.1.0</string>
+<key>CFBundleShortVersionString</key><string>$VER</string>
 <key>LSUIElement</key><false/>
 <key>LSBackgroundOnly</key><false/>
 <key>NSPrincipalClass</key><string>NSApplication</string>${ICON_PLIST}
 </dict></plist>
 EOF
 
-OUT="${1:-/tmp/Ferret9-0.1.0.pkg}"
-pkgbuild --root "$STAGE/payload" --scripts "$STAGE/scripts" --identifier com.ferret9.pkg --version 0.1.0 --install-location / "$STAGE/root.pkg" >/dev/null
+OUT="${1:-/tmp/Ferret9-$VER.pkg}"
+pkgbuild --root "$STAGE/payload" --scripts "$STAGE/scripts" --identifier com.ferret9.pkg --version "$VER" --install-location / "$STAGE/root.pkg" >/dev/null
 # App is not in the daemon payload; ship it beside the pkg so Spotlight does not index a repo copy.
 APP_DEST="$(dirname "$OUT")/Ferret9.app"
 rm -rf "$APP_DEST"

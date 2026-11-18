@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 要发布的 tag，例如 v0.0.1
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: macos-14
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: 版本号与 tag 一致
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          # inputs.tag 只经过环境变量进 shell，不拼进脚本正文。
+          case "$TAG" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "tag 必须是 v主.次.修订" >&2; exit 1 ;;
+          esac
+          want="${TAG#v}"
+          got="$(sed -n 's/.*static let version = "\([^"]*\)".*/\1/p' Sources/CofferCore/Protocol.swift)"
+          if [[ "$got" != "$want" ]]; then
+            echo "Protocol.swift 里的版本是 $got，tag 是 $want" >&2
+            exit 1
+          fi
+
+      - name: 构建、测试、打包
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          ver="${TAG#v}"
+          bash scripts/package.sh "$RUNNER_TEMP/Ferret9-$ver.pkg"
+          ditto -c -k --keepParent "$RUNNER_TEMP/Ferret9.app" "$RUNNER_TEMP/Ferret9.app.zip"
+          rm -rf "$RUNNER_TEMP/Ferret9.app"
+          ( cd "$RUNNER_TEMP" && shasum -a 256 "Ferret9-$ver.pkg" "Ferret9.app.zip" > SHA256SUMS )
+
+      - name: 发布
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          ver="${TAG#v}"
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$TAG" \
+            --notes "macOS 安装包与菜单栏 App。安装 pkg 会注册 launchd 服务，之后 ferret9 list 不需要开着 App。" \
+            "$RUNNER_TEMP/Ferret9-$ver.pkg" \
+            "$RUNNER_TEMP/Ferret9.app.zip" \
+            "$RUNNER_TEMP/SHA256SUMS"

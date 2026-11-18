@@ -128,6 +128,21 @@ hermes skills install pengzuhao/ferret9/skills/ferret9
 
 Hermes 安装时会带上 `SKILL.md` 引用的 `references/`。装完要新开一轮会话，已经打开的会话不会重新加载 skill。
 
+## 日常怎么用
+
+**不用开着 App。** 查目录和探测走的是 launchd 拉起的 `com.ferret9.service`，窗口开不开都不影响。服务随开机启动，`KeepAlive` 会在它退出后重新拉起。
+
+| 要做的事 | 用什么 | App 要开着吗 |
+|----------|--------|--------------|
+| 看有哪些凭据 | `ferret9 list` | 不用 |
+| 确认一条还能用 | `ferret9 test <名称>` | 不用 |
+| 导入、改说明、换内容、从列表移除 | 命令行，或 App 里的按钮 | 不用先打开。命令行自己弹系统授权框 |
+| 真正发请求 | `kubectl`、`aliyun`、`ossutil` 这些官方 CLI | 不用 |
+
+**原来直接用官方 CLI 和本机配置文件的方式仍然可行。** Ferret9 不是代理，不拦截这些命令。它只记录这台机器上有哪些凭据。`delete` 和「从列表中移除…」只删 `/var/db/ferret9/<名称>.json`，不动 `~/.kube`、`~/.aliyun`、`~/.ssh` 里的源文件。`/usr/local/bin/coffer` 仍是指向 `ferret9` 的链接，旧命令打到同一个服务。
+
+变的是 agent 的选凭据方式。新开会话并加载 `skills/ferret9` 之后，查集群、云、DNS、OSS 时会先跑 `ferret9 list`，按说明列挑选，不再自己去翻家目录里的密钥文件。你点名某个配置文件并明确要求直接用它，这条限制不适用。
+
 ## 构建
 
 ```bash
@@ -141,7 +156,9 @@ build/bin/ferret9-tests
 bash scripts/package.sh
 ```
 
-产物是 `/tmp/Ferret9-0.1.0.pkg` 和 `/tmp/Ferret9.app`，不要把 `.app` 留在仓库里。安装包会建 `_ferret9` 用户、复制数据目录、卸掉旧的 `com.coffer.service`。`/var/db` 受 SIP 保护，数据是复制而不是移动，旧目录仍在。
+产物是 `/tmp/Ferret9-0.0.1.pkg` 和 `/tmp/Ferret9.app`，不要把 `.app` 留在仓库里。安装包会建 `_ferret9` 用户、复制数据目录、卸掉旧的 `com.coffer.service`。`/var/db` 受 SIP 保护，数据是复制而不是移动，旧目录仍在。
+
+正式发布不在本机打包。仓库的 Actions 里有「Release」，手动触发，在 `macos-14` 上跑同一套 `scripts/package.sh`，把 pkg、zip 打包的 App 和 sha256 挂到对应 tag 的 Release 上。版本号取自 `Sources/CofferCore/Protocol.swift` 里的 `CofferPaths.version`。
 
 ## 仓库
 
