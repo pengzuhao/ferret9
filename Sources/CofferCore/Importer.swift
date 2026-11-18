@@ -117,17 +117,32 @@ public enum Importer {
     }
 
     private static func aliyunJson(_ data: Data, _ base: String) -> [PreparedCredential] {
-        guard let obj = Text.jsonObject(data), let profiles = obj["profiles"] as? [[String: Any]], !profiles.isEmpty else { return [] }
-        let current = Text.field(obj, ["current"]) ?? ""
-        return profiles.compactMap { p -> PreparedCredential? in
-            guard let key = Text.field(p, ["access_key_id"]), let secret = Text.field(p, ["access_key_secret"]) else { return nil }
-            let pn = Text.field(p, ["name"]) ?? "default"
-            let region = Text.field(p, ["region_id"]) ?? ""
-            return make(name: "\(base)-\(pn)", kind: "aliyun", detail: region.isEmpty ? pn : "\(pn) \(region)",
-                        material: key + ":" + secret,
-                        payload: ["format": "aliyun", "profile": pn, "region": region, "access_key_id": key, "access_key_secret": secret],
-                        secrets: [key, secret])
-        }.filter { current.isEmpty || profiles.count == 1 || $0.name.hasSuffix("-\(current)") }
+        guard let parsed = try? JSONSerialization.jsonObject(with: data) else { return [] }
+        let docs: [[String: Any]]
+        if let one = parsed as? [String: Any] {
+            docs = [one]
+        } else if let many = parsed as? [[String: Any]] {
+            docs = many
+        } else {
+            return []
+        }
+        var found: [PreparedCredential] = []
+        for (index, obj) in docs.enumerated() {
+            guard let profiles = obj["profiles"] as? [[String: Any]], !profiles.isEmpty else { continue }
+            let current = Text.field(obj, ["current"]) ?? ""
+            let prefix = docs.count == 1 ? base : "\(base)-\(index + 1)"
+            let items = profiles.compactMap { p -> PreparedCredential? in
+                guard let key = Text.field(p, ["access_key_id"]), let secret = Text.field(p, ["access_key_secret"]) else { return nil }
+                let pn = Text.field(p, ["name"]) ?? "default"
+                let region = Text.field(p, ["region_id"]) ?? ""
+                return make(name: "\(prefix)-\(pn)", kind: "aliyun", detail: region.isEmpty ? pn : "\(pn) \(region)",
+                            material: key + ":" + secret,
+                            payload: ["format": "aliyun", "profile": pn, "region": region, "access_key_id": key, "access_key_secret": secret],
+                            secrets: [key, secret])
+            }
+            found += items.filter { current.isEmpty || profiles.count == 1 || $0.name.hasSuffix("-\(current)") }
+        }
+        return found
     }
 
     private static func ini(_ data: Data, _ base: String) -> [PreparedCredential] {

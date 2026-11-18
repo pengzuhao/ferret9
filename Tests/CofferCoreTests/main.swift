@@ -32,6 +32,13 @@ check(kinds(kube, source: "config").contains("kubeconfig"), "kubeconfig")
 let env = "ALIBABA_CLOUD_ACCESS_KEY_ID=LTAIheuristic0001\nALIBABA_CLOUD_ACCESS_KEY_SECRET=placeholder-secret-0001\n"
 check(kinds(env, source: ".env").contains("aliyun"), "aliyun env")
 
+let aliyunList = """
+[{"current":"a","profiles":[{"name":"a","access_key_id":"[REDACTED:aliyun-key-id]","access_key_secret":"placeholder-secret-0001"}]},{"current":"b","profiles":[{"name":"b","access_key_id":"[REDACTED:aliyun-key-id]","access_key_secret":"placeholder-secret-0002"}]}]
+"""
+let aliyunItems = Importer.analyze(data: Data(aliyunList.utf8), source: "config.json-dns").0
+check(aliyunItems.count == 2 && Set(aliyunItems.map(\.kind)) == ["aliyun"], "aliyun config array splits into two")
+check(Set(aliyunItems.map(\.name)) == ["config.json-dns-1-a", "config.json-dns-2-b"], "aliyun array names stay distinct")
+
 let aws = """
 [default]
 aws_access_key_id = AKIAIOSFODNN7EXAMPLE
@@ -77,9 +84,9 @@ dir: do {
     let store = Store(directory: root)
     let broker = Broker(store: store) { _ in true }
     let b64 = Data(cloudflare.utf8).base64EncodedString()
-    let added = broker.handle(.addInline(name: "config-lab", label: "config.yaml", contentBase64: b64, authorization: "ok"))
+    let added = broker.handle(.addInline(name: "config-lab", label: "config.yaml", contentBase64: b64 , origin: nil, overrideName: nil, overrideKind: nil, overrideDetail: nil, authorization: "ok"))
     check(added.ok && added.credentials.count == 1, "add inline")
-    let renamed = broker.handle(.update(name: "config-lab", detail: "Cloudflare lab deploy token", source: nil, authorization: "ok"))
+    let renamed = broker.handle(.update(name: "config-lab", detail: "Cloudflare lab deploy token", kind: nil, rename: nil, source: nil, authorization: "ok"))
     check(renamed.ok && renamed.credentials.first?.detail == "Cloudflare lab deploy token", "rename detail")
     let listed = broker.handle(.list)
     check(listed.credentials.first?.detail == "Cloudflare lab deploy token", "list keeps detail")

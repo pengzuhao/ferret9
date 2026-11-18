@@ -27,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
     let pathField = NSTextField(string: "")
     let commandField = NSTextField(string: "")
     let detailEditor = NSTextView()
+    let kindField = NSTextField(string: "")
     let staleLabel = NSTextField(labelWithString: "")
     let message = NSTextField(labelWithString: "")
     var credentials: [CredentialSummary] = []
@@ -38,6 +39,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
     var pastePayload = Data()
     var pendingPasteDetail = ""
     var pendingPasteKind = ""
+    var kindFilter = ""
+    var filterRow = NSStackView()
+    var importAllButton: NSButton?
 
     /// Cmd+Q is delivered only through the application menu. A status-item menu
     /// is not that menu, and this app has no MainMenu nib.
@@ -53,9 +57,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         NSApp.mainMenu = main
     }
 
+    func installStatusIcon() {
+        guard let url = Bundle.main.url(forResource: "menubar", withExtension: "png"),
+              let image = NSImage(contentsOf: url) else {
+            status.button?.title = "Ferret9"
+            return
+        }
+        image.size = NSSize(width: 18, height: 18)
+        image.isTemplate = false
+        status.length = NSStatusItem.squareLength
+        status.button?.image = image
+        status.button?.imagePosition = .imageOnly
+        status.button?.imageScaling = .scaleProportionallyDown
+        status.button?.title = ""
+        status.button?.toolTip = "Ferret9"
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         installMainMenu()
-        status.button?.title = "Ferret9"
+        installStatusIcon()
         let menu = NSMenu()
         let openItem = NSMenuItem(title: "打开", action: #selector(show), keyEquivalent: "")
         openItem.target = self
@@ -162,6 +182,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         pagerHost.addSubview(pager)
 
         listPanel.addSubview(listHead)
+        filterRow.orientation = .horizontal
+        filterRow.spacing = 6
+        filterRow.alignment = .centerY
+        filterRow.translatesAutoresizingMaskIntoConstraints = false
+        listPanel.addSubview(filterRow)
         listPanel.addSubview(scroll)
         listPanel.addSubview(pagerHost)
 
@@ -196,10 +221,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
             field.setContentHuggingPriority(.defaultLow, for: .horizontal)
             field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         }
-        plainField(cliField, mono: true)
+        plainField(cliField, mono: false)
+        plainField(kindField, mono: false)
         plainField(pathField, mono: true)
         plainField(commandField, mono: true)
-        cliField.isEditable = false
+        cliField.isEditable = true
+        kindField.isEditable = true
         pathField.isEditable = false
         commandField.isEditable = false
 
@@ -278,10 +305,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         let showBtn = linkButton("显示", #selector(revealInFinder))
         let testBtn = linkButton("测试", #selector(runTestCommand))
         let saveBtn = primaryButton("保存更改", #selector(saveDetail))
+        let importAllBtn = primaryButton("全部入库", #selector(importAll))
+        importAllButton = importAllBtn
         let delBtn = textDangerButton("从列表中移除…", #selector(remove))
 
         let groupA = group([
-            fieldRow("CLI", cliField),
+            fieldRow("名称", cliField),
+            fieldRow("类型", kindField),
             fieldRow("说明", detailScroll, height: 56),
         ])
         let groupB = group([
@@ -299,10 +329,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         foot.spacing = 6
         foot.alignment = .centerX
         foot.translatesAutoresizingMaskIntoConstraints = false
+        foot.addArrangedSubview(importAllBtn)
         foot.addArrangedSubview(saveBtn)
         foot.addArrangedSubview(delBtn)
         foot.addArrangedSubview(message)
         saveBtn.translatesAutoresizingMaskIntoConstraints = false
+        importAllBtn.translatesAutoresizingMaskIntoConstraints = false
 
         let column = NSStackView(views: [inspHead, groupA, groupB, staleLabel, spacer, foot])
         column.orientation = .vertical
@@ -345,9 +377,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
             inspectorPanel.heightAnchor.constraint(equalTo: split.heightAnchor),
             listHead.leadingAnchor.constraint(equalTo: listPanel.leadingAnchor, constant: 14),
             listHead.topAnchor.constraint(equalTo: listPanel.topAnchor, constant: 12),
+            filterRow.leadingAnchor.constraint(equalTo: listPanel.leadingAnchor, constant: 14),
+            filterRow.trailingAnchor.constraint(equalTo: listPanel.trailingAnchor, constant: -14),
+            filterRow.topAnchor.constraint(equalTo: listHead.bottomAnchor, constant: 8),
+            filterRow.heightAnchor.constraint(equalToConstant: 24),
             scroll.leadingAnchor.constraint(equalTo: listPanel.leadingAnchor, constant: 8),
             scroll.trailingAnchor.constraint(equalTo: listPanel.trailingAnchor, constant: -8),
-            scroll.topAnchor.constraint(equalTo: listHead.bottomAnchor, constant: 8),
+            scroll.topAnchor.constraint(equalTo: filterRow.bottomAnchor, constant: 8),
             scroll.bottomAnchor.constraint(equalTo: pagerHost.topAnchor, constant: -64),
             pagerHost.leadingAnchor.constraint(equalTo: listPanel.leadingAnchor, constant: 10),
             pagerHost.trailingAnchor.constraint(equalTo: listPanel.trailingAnchor, constant: -10),
@@ -368,6 +404,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
             foot.leadingAnchor.constraint(equalTo: column.leadingAnchor),
             foot.trailingAnchor.constraint(equalTo: column.trailingAnchor),
             saveBtn.widthAnchor.constraint(equalTo: foot.widthAnchor),
+            importAllBtn.widthAnchor.constraint(equalTo: foot.widthAnchor),
         ])
     }
 
@@ -489,10 +526,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         let auth = ticket()
         guard !auth.isEmpty else { message.stringValue = "需要授权"; return }
         for item in pick {
-            respond(.addInline(name: item.name, label: source, contentBase64: pastePayload.base64EncodedString(), authorization: auth))
+            respond(.addInline(name: item.name, label: source, contentBase64: pastePayload.base64EncodedString(), origin: sourcePath.isEmpty ? nil : sourcePath, overrideName: nil, overrideKind: nil, overrideDetail: nil, authorization: auth))
+            if message.stringValue.hasPrefix("已添加") {
+                candidates.removeAll { $0.name == item.name }
+            }
         }
-        reload()
+        rebuild()
     }
+
+    @objc func importAll() {
+        guard !candidates.isEmpty else { message.stringValue = "没有待入库的条目"; return }
+        let auth = ticket()
+        guard !auth.isEmpty else { message.stringValue = "需要授权"; return }
+        let pending = candidates
+        var added = 0
+        var failed: [String] = []
+        for item in pending {
+            respond(.addInline(name: item.name, label: source, contentBase64: pastePayload.base64EncodedString(), origin: sourcePath.isEmpty ? nil : sourcePath, overrideName: nil, overrideKind: nil, overrideDetail: nil, authorization: auth))
+            if message.stringValue.hasPrefix("已添加") {
+                candidates.removeAll { $0.name == item.name }
+                added += 1
+            } else {
+                failed.append(item.name)
+            }
+        }
+        rebuild()
+        if failed.isEmpty {
+            message.stringValue = "已入库 \(added) 条"
+        } else {
+            message.stringValue = "入库 \(added) 条，失败 \(failed.count) 条：\(failed.joined(separator: "、"))"
+        }
+    }
+
     @objc func rename() {
         guard let name = selectedCredential() else { return }
         let alert = NSAlert()
@@ -505,7 +570,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         alert.addButton(withTitle: "确定")
         alert.addButton(withTitle: "取消")
         guard alert.runModal() == .alertFirstButtonReturn, !field.stringValue.isEmpty else { return }
-        respond(.update(name: name, detail: field.stringValue, source: nil, authorization: ticket()))
+        respond(.update(name: name, detail: field.stringValue, kind: nil, rename: nil, source: nil, authorization: ticket()))
     }
     @objc func replace() {
         guard let name = selectedCredential() else { return }
@@ -550,11 +615,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
     }
 
     @objc func saveDetail() {
-        guard let name = selectedCredential() else { return }
+        guard let row = current() else { return }
         let detail = detailEditor.string.trimmingCharacters(in: .whitespacesAndNewlines)
+        let kind = kindField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let newName = cliField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !newName.isEmpty else { message.stringValue = "名称不能为空"; return }
         let auth = ticket()
         guard !auth.isEmpty else { message.stringValue = "需要授权"; return }
-        respond(.update(name: name, detail: detail.isEmpty ? nil : detail, source: nil, authorization: auth))
+        if case .candidate(let item) = row.value {
+            respond(.addInline(name: item.name, label: source, contentBase64: pastePayload.base64EncodedString(), origin: sourcePath.isEmpty ? nil : sourcePath, overrideName: newName, overrideKind: kind.isEmpty ? nil : kind, overrideDetail: detail.isEmpty ? nil : detail, authorization: ticket()))
+            if message.stringValue.hasPrefix("已添加") {
+                candidates.removeAll { $0.name == item.name }
+            }
+            rebuild()
+            return
+        }
+        guard case .credential = row.value else { return }
+        respond(.update(name: row.title, detail: detail.isEmpty ? nil : detail, kind: kind.isEmpty ? nil : kind, rename: newName == row.title ? nil : newName, source: nil, authorization: ticket()))
     }
 
     @objc func revealInFinder() {
@@ -578,10 +655,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
     }
 
     func respond(_ req: Request) {
+        let keep = current()?.title
         do {
             let res = try Client.call(req)
             message.stringValue = res.message
-            if let report = res.inspect {
+            if let report = res.inspect, res.message.isEmpty {
                 var parts = ["编码 \(report.encoding)", "分段 \(report.segmentCount)"]
                 if !report.attempts.isEmpty { parts.append("检测 \(report.attempts.prefix(8).joined(separator: ","))") }
                 message.stringValue = parts.joined(separator: " · ")
@@ -595,10 +673,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
                 credentials = res.credentials
                 candidates = []
                 rebuild()
+                if let keep, let index = shown.firstIndex(where: { $0.title == keep }) {
+                    sidebar.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
+                    showSelection()
+                }
                 return
             }
             candidates = res.candidates
-            credentials = []
+            if !candidates.isEmpty { credentials = [] }
             rebuild()
         } catch {
             message.stringValue = error.localizedDescription
@@ -639,21 +721,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
     func updatePager() {
         let pages = pageCount()
         pageLabel.stringValue = "\(page + 1) / \(pages)"
-        statusLabel.stringValue = "已纳管 \(credentials.count) 条"
+        if !candidates.isEmpty {
+            statusLabel.stringValue = "已纳管 \(credentials.count) 条 · 待入库 \(candidates.count) 条"
+        } else {
+            statusLabel.stringValue = "已纳管 \(credentials.count) 条"
+        }
+        importAllButton?.isHidden = candidates.isEmpty
+        refreshFilters()
+    }
+
+    func refreshFilters() {
+        let kinds = Array(Set(credentials.map(\.kind))).sorted()
+        if !kindFilter.isEmpty && !kinds.contains(kindFilter) { kindFilter = "" }
+        for view in filterRow.arrangedSubviews { filterRow.removeArrangedSubview(view); view.removeFromSuperview() }
+        guard kinds.count > 1 else { return }
+        for label in ["全部"] + kinds {
+            let button = NSButton(title: label, target: self, action: #selector(filterKind(_:)))
+            button.bezelStyle = .recessed
+            button.setButtonType(.pushOnPushOff)
+            button.controlSize = .small
+            button.font = .systemFont(ofSize: 11)
+            let active = (label == "全部" && kindFilter.isEmpty) || label == kindFilter
+            button.state = active ? .on : .off
+            filterRow.addArrangedSubview(button)
+        }
+    }
+
+    @objc func filterKind(_ sender: NSButton) {
+        kindFilter = sender.title == "全部" ? "" : sender.title
+        page = 0
+        rebuild()
     }
 
     func shownIndex(for row: Int) -> Int { page * pageSize + row }
 
     func rebuild() {
-        if credentials.isEmpty && !candidates.isEmpty {
-            shown = candidates.map { Shown.candidate($0, sourcePath) }
-        } else {
-            shown = Shown.grouped(credentials)
-        }
+        let keep = current()?.title
+        let pool = kindFilter.isEmpty ? credentials : credentials.filter { $0.kind == kindFilter }
+        let pending = candidates.map { Shown.candidate($0, sourcePath) }
+        shown = pending + Shown.grouped(pool)
         sidebar.reloadData()
         fitPageSize()
         updatePager()
-        if let first = shown.firstIndex(where: { if case .credential = $0.value { return true }; return false }) {
+        let restored = keep.flatMap { name in shown.firstIndex { $0.title == name } }
+        if let restored {
+            sidebar.selectRowIndexes(IndexSet(integer: restored), byExtendingSelection: false)
+        } else if let first = shown.firstIndex(where: { if case .credential = $0.value { return true }; return false }) {
             sidebar.selectRowIndexes(IndexSet(integer: first), byExtendingSelection: false)
         } else if !shown.isEmpty {
             sidebar.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
@@ -714,6 +827,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         guard let row = current() else {
             window.title = "Ferret9"
             cliField.stringValue = ""
+            kindField.stringValue = ""
             detailEditor.string = ""
             pathField.stringValue = ""
             commandField.stringValue = ""
@@ -721,7 +835,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
             return
         }
         window.title = "Ferret9 — \(row.title)"
-        cliField.stringValue = row.cliHint
+        if case .candidate(let item) = row.value {
+            cliField.stringValue = item.name
+        } else {
+            cliField.stringValue = row.title
+        }
+        kindField.stringValue = row.kind
         let d = row.detailText
         detailEditor.string = (d == "（无说明）" || d.hasPrefix("（导入")) ? "" : d
         pathField.stringValue = row.pathText
@@ -746,7 +865,7 @@ struct Shown {
 
     static func candidate(_ item: ImportCandidate, _ path: String) -> Shown {
         let usage = Usage.lookup(name: item.name, kind: item.kind, path: path.isEmpty ? nil : path)
-        return Shown(value: .candidate(item), title: item.name, heading: false, kind: item.kind,
+        return Shown(value: .candidate(item), title: "待入库 · \(item.name)", heading: false, kind: item.kind,
                      pathText: path.isEmpty ? "粘贴内容，没有原文件" : (NSString(string: path).abbreviatingWithTildeInPath),
                      command: usage.command, openText: usage.open, stale: "", origin: path.isEmpty ? nil : path,
                      detailText: item.detail.isEmpty ? "（导入预览，尚未入库）" : item.detail,
@@ -759,7 +878,7 @@ struct Shown {
         for kind in kinds {
             for item in items.filter({ $0.kind == kind }).sorted(by: { $0.name < $1.name }) {
                 let known = Catalog.match(item.name)
-                let path = known?.path
+                let path = item.source ?? known?.path
                 let usage = Usage.lookup(name: item.name, kind: item.kind, path: path)
                 let display = path.map { NSString(string: $0).abbreviatingWithTildeInPath } ?? "未记录原始路径"
                 rows.append(Shown(value: .credential(item), title: item.name, heading: false, kind: item.kind,

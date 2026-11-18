@@ -9,19 +9,36 @@ public struct Store {
     public func list() throws -> [CredentialSummary] {
         try records().map(\.summary).sorted { $0.name < $1.name }
     }
-    public func add(_ item: PreparedCredential) throws {
+    public func add(_ item: PreparedCredential, source: String? = nil) throws {
         try validate(item.name)
         let file = url(item.name)
         guard !FileManager.default.fileExists(atPath: file.path) else { throw CofferError.exists(item.name) }
-        try write(Record(item: item, added: Fingerprint.stamp()), to: file)
+        var rec = Record(item: item, added: Fingerprint.stamp())
+        rec.source = source
+        try write(rec, to: file)
     }
-    public func update(name: String, detail: String?, item: PreparedCredential?) throws {
+    public func update(name: String, detail: String?, kind: String?, rename: String?, item: PreparedCredential?) throws {
         try validate(name)
         var rec = try read(name)
         if let detail { rec.detail = detail }
+        if let kind {
+            guard kind.range(of: "^[A-Za-z0-9][A-Za-z0-9._-]{0,40}$", options: .regularExpression) != nil else {
+                throw CofferError.invalid("类型格式无效")
+            }
+            rec.kind = kind
+        }
         if let item {
             rec.kind = item.kind; rec.fingerprint = item.fingerprint; rec.payload = item.payload; rec.secrets = item.secrets
             if detail == nil { rec.detail = item.detail }
+        }
+        if let rename, rename != name {
+            try validate(rename)
+            let target = url(rename)
+            guard !FileManager.default.fileExists(atPath: target.path) else { throw CofferError.exists(rename) }
+            rec.name = rename
+            try write(rec, to: target)
+            try FileManager.default.removeItem(at: url(name))
+            return
         }
         try write(rec, to: url(name))
     }
@@ -66,13 +83,14 @@ public struct StoredCredential {
 
 private struct Record: Codable {
     var name, kind, detail, fingerprint, added: String
+    var source: String?
     var payload: Data
     var secrets: [String]
     init(item: PreparedCredential, added: String) {
         name = item.name; kind = item.kind; detail = item.detail; fingerprint = item.fingerprint
         self.added = added; payload = item.payload; secrets = item.secrets
     }
-    var summary: CredentialSummary { CredentialSummary(name: name, kind: kind, detail: detail, fingerprint: fingerprint, added: added) }
+    var summary: CredentialSummary { CredentialSummary(name: name, kind: kind, detail: detail, fingerprint: fingerprint, added: added, source: source) }
     var stored: StoredCredential {
         let o = (try? JSONSerialization.jsonObject(with: payload)) as? [String: String] ?? [:]
         return StoredCredential(name: name, kind: kind, fields: o, secrets: secrets)

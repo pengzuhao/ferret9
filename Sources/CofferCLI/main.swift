@@ -12,7 +12,7 @@ if args.first == "add-batch" {
     for line in raw.split(separator: "\n", omittingEmptySubsequences: true) {
         let parts = line.split(separator: "\t", maxSplits: 2).map(String.init)
         guard parts.count == 3 else { fputs("格式错误\n", stderr); failed += 1; continue }
-        let req = Request.addInline(name: parts[0], label: parts[1], contentBase64: parts[2], authorization: auth)
+        let req = Request.addInline(name: parts[0], label: parts[1], contentBase64: parts[2], origin: nil, overrideName: nil, overrideKind: nil, overrideDetail: nil, authorization: auth)
         do {
             let res = try Client.call(req, socketPath: socket)
             if res.ok { ok += 1; print("OK\t\(parts[0])") }
@@ -56,13 +56,13 @@ func parse(_ a: [String]) throws -> Request {
         return .inspectText(label: a.count > 1 ? a[1] : "clipboard", contentBase64: try readStdin().base64EncodedString())
     case "test": guard a.count == 2 else { throw CofferError.invalid("test <名称>") }; return .test(name: a[1])
     case "add": guard a.count == 3 else { throw CofferError.invalid("add <名称> <文件>") }
-        return .add(name: a[1], source: a[2], authorization: try ticket())
+        return .add(name: a[1], source: a[2], origin: nil, authorization: try ticket())
     case "add-paste": guard a.count == 3 else { throw CofferError.invalid("add-paste <名称> <标签>") }
-        return .addInline(name: a[1], label: a[2], contentBase64: try readStdin().base64EncodedString(), authorization: try ticket())
+        return .addInline(name: a[1], label: a[2], contentBase64: try readStdin().base64EncodedString(), origin: nil, overrideName: nil, overrideKind: nil, overrideDetail: nil, authorization: try ticket())
     case "rename": guard a.count == 3 else { throw CofferError.invalid("rename <名称> <说明>") }
-        return .update(name: a[1], detail: a[2], source: nil, authorization: try ticket())
+        return .update(name: a[1], detail: a[2], kind: nil, rename: nil, source: nil, authorization: try ticket())
     case "replace": guard a.count == 3 else { throw CofferError.invalid("replace <名称> <文件>") }
-        return .update(name: a[1], detail: nil, source: a[2], authorization: try ticket())
+        return .update(name: a[1], detail: nil, kind: nil, rename: nil, source: a[2], authorization: try ticket())
     case "replace-paste": guard a.count == 3 else { throw CofferError.invalid("replace-paste <名称> <标签>") }
         return .updateInline(name: a[1], label: a[2], contentBase64: try readStdin().base64EncodedString(), authorization: try ticket())
     case "delete": guard a.count == 2 else { throw CofferError.invalid("delete <名称>") }

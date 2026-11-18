@@ -32,8 +32,10 @@ public enum ImportConfidence: String, Codable, Equatable { case high, medium, lo
 public struct CredentialSummary: Codable, Equatable, Identifiable {
     public var id: String { name }
     public var name, kind, detail, fingerprint, added: String
-    public init(name: String, kind: String, detail: String, fingerprint: String, added: String) {
+    public var source: String?
+    public init(name: String, kind: String, detail: String, fingerprint: String, added: String, source: String? = nil) {
         self.name = name; self.kind = kind; self.detail = detail; self.fingerprint = fingerprint; self.added = added
+        self.source = source
     }
 }
 
@@ -57,9 +59,9 @@ public enum Request: Codable, Equatable {
     case list
     case inspect(path: String)
     case inspectText(label: String, contentBase64: String)
-    case add(name: String, source: String, authorization: String?)
-    case addInline(name: String, label: String, contentBase64: String, authorization: String?)
-    case update(name: String, detail: String?, source: String?, authorization: String?)
+    case add(name: String, source: String, origin: String?, authorization: String?)
+    case addInline(name: String, label: String, contentBase64: String, origin: String?, overrideName: String?, overrideKind: String?, overrideDetail: String?, authorization: String?)
+    case update(name: String, detail: String?, kind: String?, rename: String?, source: String?, authorization: String?)
     case updateInline(name: String, label: String, contentBase64: String, authorization: String?)
     case delete(name: String, authorization: String?)
     case test(name: String)

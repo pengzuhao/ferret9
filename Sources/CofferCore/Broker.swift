@@ -19,25 +19,40 @@ public struct Broker {
             case .inspectText(let label, let b64):
                 guard let data = Data(base64Encoded: b64) else { throw CofferError.invalid("Base64 无效") }
                 return try inspectData(data, source: label)
-            case .add(let name, let source, let auth):
+            case .add(let name, let source, let origin, let auth):
                 try require(auth)
-                try store.add(try Importer.select(try Data(contentsOf: URL(fileURLWithPath: source)), source: source, name: name))
+                try store.add(try Importer.select(try Data(contentsOf: URL(fileURLWithPath: source)), source: source, name: name), source: origin ?? source)
                 return Response(ok: true, message: "已添加 \(name)", credentials: try store.list())
-            case .addInline(let name, let label, let b64, let auth):
+            case .addInline(let name, let label, let b64, let origin, let overrideName, let overrideKind, let overrideDetail, let auth):
                 try require(auth)
                 guard let data = Data(base64Encoded: b64) else { throw CofferError.invalid("Base64 无效") }
-                try store.add(try Importer.select(data, source: label, name: name))
-                return Response(ok: true, message: "已添加 \(name)", credentials: try store.list())
-            case .update(let name, let detail, let source, let auth):
+                var item = try Importer.select(data, source: label, name: name)
+                if let overrideName, !overrideName.isEmpty {
+                    guard overrideName.range(of: "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$", options: .regularExpression) != nil else {
+                        throw CofferError.invalid("名称格式无效")
+                    }
+                    item.name = overrideName
+                }
+                if let overrideKind, !overrideKind.isEmpty {
+                    guard overrideKind.range(of: "^[A-Za-z0-9][A-Za-z0-9._-]{0,40}$", options: .regularExpression) != nil else {
+                        throw CofferError.invalid("类型格式无效")
+                    }
+                    item.kind = overrideKind
+                }
+                if let overrideDetail, !overrideDetail.isEmpty { item.detail = overrideDetail }
+                try store.add(item, source: origin)
+                return Response(ok: true, message: "已添加 \(item.name)", credentials: try store.list())
+            case .update(let name, let detail, let kind, let rename, let source, let auth):
                 try require(auth)
                 let rep = try source.map { try Importer.select(try Data(contentsOf: URL(fileURLWithPath: $0)), source: $0, name: name) }
-                try store.update(name: name, detail: detail, item: rep)
-                return Response(ok: true, message: "已更新 \(name)", credentials: try store.list())
+                try store.update(name: name, detail: detail, kind: kind, rename: rename, item: rep)
+                let shown = (rename?.isEmpty == false) ? rename! : name
+                return Response(ok: true, message: "已更新 \(shown)", credentials: try store.list())
             case .updateInline(let name, let label, let b64, let auth):
                 try require(auth)
                 guard let data = Data(base64Encoded: b64) else { throw CofferError.invalid("Base64 无效") }
                 let item = try Importer.select(data, source: label, name: name)
-                try store.update(name: name, detail: nil, item: item)
+                try store.update(name: name, detail: nil, kind: nil, rename: nil, item: item)
                 return Response(ok: true, message: "已更新 \(name)", credentials: try store.list())
             case .delete(let name, let auth):
                 try require(auth); try store.delete(name: name)

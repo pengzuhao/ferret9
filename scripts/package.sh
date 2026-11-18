@@ -40,6 +40,10 @@ elif [[ -f "$ICON_SRC" ]]; then
 else
   ICON_PLIST=""
 fi
+if [[ -f "$ROOT/packaging/menubar.png" ]]; then
+  mkdir -p "$APP/Contents/Resources"
+  cp "$ROOT/packaging/menubar.png" "$APP/Contents/Resources/menubar.png"
+fi
 cp "$BIN/ferret9-cli" "$STAGE/payload/usr/local/bin/ferret9"
 cp "$BIN/ferret9-service" "$STAGE/payload/Library/PrivilegedHelperTools/ferret9-service"
 cp "$ROOT/packaging/com.ferret9.service.plist" "$STAGE/payload/Library/LaunchDaemons/com.ferret9.service.plist"
