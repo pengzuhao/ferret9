@@ -82,7 +82,7 @@ if not isinstance(doc, dict):
     sys.exit("hooks.json 不是对象")
 doc.setdefault("version", 1)
 hooks = doc.setdefault("hooks", {})
-entry = {"command": script, "failClosed": True, "_ferret9": True}
+entry = {"command": "python3 " + script + " cursor", "failClosed": True, "_ferret9": True}
 for event in ("beforeReadFile", "beforeShellExecution"):
     group = [h for h in hooks.get(event, []) if not h.get("_ferret9")]
     group.append(entry)

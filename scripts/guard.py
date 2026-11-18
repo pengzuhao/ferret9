@@ -122,7 +122,8 @@ def emit(agent, block):
 
 
 def main():
-    if len(sys.argv) != 2:
+    agent = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("FERRET9_AGENT", "")
+    if not agent:
         print("用法：guard.py <agent>", file=sys.stderr)
         return 1
     raw = sys.stdin.read()
@@ -131,7 +132,7 @@ def main():
     except json.JSONDecodeError:
         print("输入不是 JSON", file=sys.stderr)
         return 1
-    return emit(sys.argv[1], decide(payload))
+    return emit(agent, decide(payload))
 
 
 if __name__ == "__main__":
