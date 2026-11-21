@@ -92,7 +92,34 @@ dir: do {
     check(listed.credentials.first?.detail == "Cloudflare lab deploy token", "list keeps detail")
     let tested = broker.handle(.test(name: "config-lab"))
     check(tested.ok && tested.message.contains("Cloudflare"), "probe")
+    let renamedId = broker.handle(.update(name: "config-lab", detail: nil, kind: "阿里云", rename: "实验室", source: nil, authorization: "ok"))
+    check(renamedId.ok && renamedId.credentials.contains { $0.name == "实验室" && $0.kind == "阿里云" }, "unicode name and kind")
+    let rejected = broker.handle(.update(name: "实验室", detail: nil, kind: "a/b", rename: nil, source: nil, authorization: "ok"))
+    check(!rejected.ok && rejected.credentials.isEmpty, "bad kind returns no list")
+    let still = broker.handle(.list)
+    check(still.credentials.contains { $0.name == "实验室" && $0.kind == "阿里云" }, "rejected update does not drop record")
     try FileManager.default.removeItem(at: root)
+}
+
+origins: do {
+    let home = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ferret9-home-\(UUID().uuidString)", isDirectory: true)
+    func touch(_ relative: String) {
+        let url = home.appendingPathComponent(relative)
+        try! FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try! Data("x".utf8).write(to: url)
+    }
+    touch(".kube/config-lab")
+    touch(".redis/config.yaml")
+    touch(".aliyun/config.json-sample-lab")
+    touch(".ossutilconfig-lab")
+    touch(".ssh/id_example")
+    check(OriginLookup.locate(name: "config-lab", kind: "kubeconfig", home: home)?.hasSuffix(".kube/config-lab") == true, "kube path")
+    check(OriginLookup.locate(name: "config-lab-extra", kind: "redis", home: home)?.hasSuffix(".redis/config.yaml") == true, "redis path")
+    check(OriginLookup.locate(name: "config.json-samplelab", kind: "aliyun", home: home)?.hasSuffix("config.json-sample-lab") == true, "aliyun folded name")
+    check(OriginLookup.locate(name: "ossutilconfig-lab-default", kind: "ossutil", home: home)?.hasSuffix(".ossutilconfig-lab") == true, "ossutil path")
+    check(OriginLookup.locate(name: "id_example", kind: "private-key", home: home)?.hasSuffix(".ssh/id_example") == true, "key path")
+    check(OriginLookup.locate(name: "missing", kind: "kubeconfig", home: home) == nil, "unknown stays empty")
+    try FileManager.default.removeItem(at: home)
 }
 
 print("ok")

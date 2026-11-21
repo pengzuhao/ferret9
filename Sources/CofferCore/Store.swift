@@ -22,9 +22,7 @@ public struct Store {
         var rec = try read(name)
         if let detail { rec.detail = detail }
         if let kind {
-            guard kind.range(of: "^[A-Za-z0-9][A-Za-z0-9._-]{0,40}$", options: .regularExpression) != nil else {
-                throw CofferError.invalid("类型格式无效")
-            }
+            guard Self.accepts(kind, max: 40) else { throw CofferError.invalid("类型只能用字母、数字、. _ -") }
             rec.kind = kind
         }
         if let item {
@@ -69,9 +67,11 @@ public struct Store {
     }
     private func url(_ name: String) -> URL { directory.appendingPathComponent(name).appendingPathExtension("json") }
     private func validate(_ name: String) throws {
-        guard name.range(of: "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$", options: .regularExpression) != nil else {
-            throw CofferError.invalid("名称格式无效")
-        }
+        guard Self.accepts(name, max: 80) else { throw CofferError.invalid("名称只能用字母、数字、. _ -") }
+    }
+
+    static func accepts(_ value: String, max: Int) -> Bool {
+        value.range(of: "^[\\p{L}\\p{N}][\\p{L}\\p{N}._-]{0,\(max)}$", options: .regularExpression) != nil
     }
 }
 

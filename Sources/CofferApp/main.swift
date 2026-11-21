@@ -7,6 +7,27 @@ let delegate = AppDelegate()
 app.delegate = delegate
 app.run()
 
+final class FittingText: NSTextView {
+    override var intrinsicContentSize: NSSize {
+        guard let layoutManager, let textContainer else {
+            return NSSize(width: NSView.noIntrinsicMetric, height: 18)
+        }
+        let width = bounds.width > 40 ? bounds.width : 220
+        textContainer.containerSize = NSSize(width: width, height: 10_000)
+        layoutManager.ensureLayout(for: textContainer)
+        let used = layoutManager.usedRect(for: textContainer)
+        let height = max(16, ceil(used.height + textContainerInset.height * 2))
+        return NSSize(width: NSView.noIntrinsicMetric, height: height)
+    }
+
+    override func layout() {
+        super.layout()
+        if abs(intrinsicContentSize.height - bounds.height) > 0.5 {
+            invalidateIntrinsicContentSize()
+        }
+    }
+}
+
 enum ImportMode { case file, clipboard }
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTableViewDelegate {
@@ -24,8 +45,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
     var pageSize = 12
     let nameLabel = NSTextField(labelWithString: "")
     let cliField = NSTextField(string: "")
-    let pathField = NSTextField(string: "")
-    let commandField = NSTextField(string: "")
+    let pathField = FittingText()
+    let commandField = FittingText()
     let detailEditor = NSTextView()
     let kindField = NSTextField(string: "")
     let staleLabel = NSTextField(labelWithString: "")
@@ -52,8 +73,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         appMenu.addItem(quit)
         let appItem = NSMenuItem()
         appItem.submenu = appMenu
+
+        let editMenu = NSMenu(title: "编辑")
+        editMenu.addItem(withTitle: "撤销", action: Selector(("undo:")), keyEquivalent: "z")
+        let redo = NSMenuItem(title: "重做", action: Selector(("redo:")), keyEquivalent: "z")
+        redo.keyEquivalentModifierMask = [.command, .shift]
+        editMenu.addItem(redo)
+        editMenu.addItem(.separator())
+        editMenu.addItem(withTitle: "剪切", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        editMenu.addItem(withTitle: "拷贝", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: "粘贴", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(withTitle: "全选", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        let editItem = NSMenuItem()
+        editItem.submenu = editMenu
+
         let main = NSMenu()
         main.addItem(appItem)
+        main.addItem(editItem)
         NSApp.mainMenu = main
     }
 
@@ -223,12 +259,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         }
         plainField(cliField, mono: false)
         plainField(kindField, mono: false)
-        plainField(pathField, mono: true)
-        plainField(commandField, mono: true)
         cliField.isEditable = true
         kindField.isEditable = true
-        pathField.isEditable = false
-        commandField.isEditable = false
+        func wrapField(_ field: FittingText) {
+            field.isEditable = false
+            field.isSelectable = true
+            field.isRichText = false
+            field.drawsBackground = false
+            field.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
+            field.textContainerInset = NSSize(width: 0, height: 1)
+            field.textContainer?.widthTracksTextView = false
+            field.isHorizontallyResizable = false
+            field.isVerticallyResizable = false
+            field.translatesAutoresizingMaskIntoConstraints = false
+            field.setContentHuggingPriority(.defaultLow, for: .horizontal)
+            field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        }
+        wrapField(pathField)
+        wrapField(commandField)
 
         detailEditor.isEditable = true
         detailEditor.isRichText = false
@@ -244,7 +292,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         detailScroll.heightAnchor.constraint(equalToConstant: 48).isActive = true
         detailScroll.setContentHuggingPriority(.defaultLow, for: .horizontal)
 
-        func fieldRow(_ title: String, _ control: NSView, _ action: NSButton? = nil, height: CGFloat = 36) -> NSView {
+        func fieldRow(_ title: String, _ control: NSView, _ action: NSButton? = nil, height: CGFloat? = 36) -> NSView {
             let label = NSTextField(labelWithString: title)
             label.font = .systemFont(ofSize: 11, weight: .medium)
             label.textColor = .secondaryLabelColor
@@ -263,7 +311,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
             row.alignment = .centerY
             row.spacing = 8
             row.translatesAutoresizingMaskIntoConstraints = false
-            row.heightAnchor.constraint(equalToConstant: height).isActive = true
+            if let height {
+                row.heightAnchor.constraint(equalToConstant: height).isActive = true
+            } else {
+                row.alignment = .top
+                row.distribution = .fill
+                row.heightAnchor.constraint(greaterThanOrEqualToConstant: 36).isActive = true
+            }
             return row
         }
         func group(_ rows: [NSView]) -> NSView {
@@ -315,8 +369,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
             fieldRow("说明", detailScroll, height: 56),
         ])
         let groupB = group([
-            fieldRow("路径", pathField, showBtn),
-            fieldRow("命令", commandField, testBtn),
+            fieldRow("路径", pathField, showBtn, height: nil),
+            fieldRow("命令", commandField, testBtn, height: nil),
         ])
 
         let spacer = NSView()
@@ -655,7 +709,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
     }
 
     func respond(_ req: Request) {
-        let keep = current()?.title
+        var keep = current()?.title
         do {
             let res = try Client.call(req)
             message.stringValue = res.message
@@ -667,16 +721,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
             if case .test = req {
                 return
             }
+            guard res.ok else { return }
+            if case .update(let name, _, let kind, let rename, _, _) = req {
+                keep = (rename?.isEmpty == false) ? rename : name
+                if let kind, !kind.isEmpty, !kindFilter.isEmpty, kind != kindFilter {
+                    kindFilter = ""
+                }
+            }
             if case .inspect = req {
             } else if case .inspectText = req {
             } else {
                 credentials = res.credentials
                 candidates = []
-                rebuild()
-                if let keep, let index = shown.firstIndex(where: { $0.title == keep }) {
-                    sidebar.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
-                    showSelection()
-                }
+                rebuild(select: keep)
                 return
             }
             candidates = res.candidates
@@ -755,8 +812,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
 
     func shownIndex(for row: Int) -> Int { page * pageSize + row }
 
-    func rebuild() {
-        let keep = current()?.title
+    func rebuild(select keep: String? = nil) {
+        let keep = keep ?? current()?.title
         let pool = kindFilter.isEmpty ? credentials : credentials.filter { $0.kind == kindFilter }
         let pending = candidates.map { Shown.candidate($0, sourcePath) }
         shown = pending + Shown.grouped(pool)
@@ -765,13 +822,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         updatePager()
         let restored = keep.flatMap { name in shown.firstIndex { $0.title == name } }
         if let restored {
-            sidebar.selectRowIndexes(IndexSet(integer: restored), byExtendingSelection: false)
+            selectShown(at: restored)
         } else if let first = shown.firstIndex(where: { if case .credential = $0.value { return true }; return false }) {
-            sidebar.selectRowIndexes(IndexSet(integer: first), byExtendingSelection: false)
+            selectShown(at: first)
         } else if !shown.isEmpty {
-            sidebar.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+            selectShown(at: 0)
         }
         showSelection()
+    }
+
+    func selectShown(at index: Int) {
+        guard shown.indices.contains(index) else { return }
+        let size = max(pageSize, 1)
+        let newPage = index / size
+        if newPage != page {
+            page = newPage
+            sidebar.reloadData()
+            updatePager()
+        }
+        sidebar.selectRowIndexes(IndexSet(integer: index - page * size), byExtendingSelection: false)
     }
 
     func current() -> Shown? {
@@ -829,8 +898,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
             cliField.stringValue = ""
             kindField.stringValue = ""
             detailEditor.string = ""
-            pathField.stringValue = ""
-            commandField.stringValue = ""
+            pathField.string = ""
+            commandField.string = ""
             staleLabel.stringValue = ""
             return
         }
@@ -843,8 +912,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         kindField.stringValue = row.kind
         let d = row.detailText
         detailEditor.string = (d == "（无说明）" || d.hasPrefix("（导入")) ? "" : d
-        pathField.stringValue = row.pathText
-        commandField.stringValue = row.command
+        pathField.string = row.pathText
+        commandField.string = row.command
         staleLabel.stringValue = row.stale
     }
 }
@@ -878,7 +947,7 @@ struct Shown {
         for kind in kinds {
             for item in items.filter({ $0.kind == kind }).sorted(by: { $0.name < $1.name }) {
                 let known = Catalog.match(item.name)
-                let path = item.source ?? known?.path
+                let path = item.source ?? OriginLookup.locate(name: item.name, kind: item.kind) ?? known?.path
                 let usage = Usage.lookup(name: item.name, kind: item.kind, path: path)
                 let display = path.map { NSString(string: $0).abbreviatingWithTildeInPath } ?? "未记录原始路径"
                 rows.append(Shown(value: .credential(item), title: item.name, heading: false, kind: item.kind,

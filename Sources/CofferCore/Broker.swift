@@ -28,19 +28,16 @@ public struct Broker {
                 guard let data = Data(base64Encoded: b64) else { throw CofferError.invalid("Base64 无效") }
                 var item = try Importer.select(data, source: label, name: name)
                 if let overrideName, !overrideName.isEmpty {
-                    guard overrideName.range(of: "^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$", options: .regularExpression) != nil else {
-                        throw CofferError.invalid("名称格式无效")
-                    }
+                    guard Store.accepts(overrideName, max: 80) else { throw CofferError.invalid("名称只能用字母、数字、. _ -") }
                     item.name = overrideName
                 }
                 if let overrideKind, !overrideKind.isEmpty {
-                    guard overrideKind.range(of: "^[A-Za-z0-9][A-Za-z0-9._-]{0,40}$", options: .regularExpression) != nil else {
-                        throw CofferError.invalid("类型格式无效")
-                    }
+                    guard Store.accepts(overrideKind, max: 40) else { throw CofferError.invalid("类型只能用字母、数字、. _ -") }
                     item.kind = overrideKind
                 }
                 if let overrideDetail, !overrideDetail.isEmpty { item.detail = overrideDetail }
-                try store.add(item, source: origin)
+                let recorded = (origin?.isEmpty == false) ? origin : (label.contains("/") ? label : nil)
+                try store.add(item, source: recorded)
                 return Response(ok: true, message: "已添加 \(item.name)", credentials: try store.list())
             case .update(let name, let detail, let kind, let rename, let source, let auth):
                 try require(auth)
