@@ -10,7 +10,6 @@ public enum Probe {
             let a = item.fields["account"] ?? "default"
             return "已保存 Cloudflare \(a)，第一版不代发 API"
         case "feishu": return "已保存飞书应用凭据，第一版不代发 API"
-        case "obsutil": return "已保存华为 OBS 凭据，第一版不代发请求"
         case "redis": return "已保存 Redis \(item.fields["instance"] ?? item.name)，第一版不代发连接"
         case "private-key": return "已保存私钥，不提供探测"
         case "token": return "已保存 token"
@@ -47,14 +46,7 @@ public enum Probe {
     }
 
     private static func run(_ path: String, _ args: [String]) throws -> String {
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: path)
-        p.arguments = args
-        let pipe = Pipe()
-        p.standardOutput = pipe
-        p.standardError = Pipe()
-        try p.run(); p.waitUntilExit()
-        return String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        try Runner.execute(path, args, env: [:]).output
     }
 }
 

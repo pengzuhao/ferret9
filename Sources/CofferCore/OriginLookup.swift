@@ -52,7 +52,6 @@ public enum OriginLookup {
         "aliyun": [".aliyun"],
         "aws": [".aws"],
         "ossutil": ["."],
-        "obsutil": ["."],
         "private-key": [".ssh"],
         "redis": [".redis"],
         "cloudflare": [".cloudflare"],

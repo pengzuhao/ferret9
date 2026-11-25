@@ -26,9 +26,19 @@ fetch() {
 fetch guard.py
 fetch check-guard.py
 
+SKILL="$WORKDIR/skill"
+mkdir -p "$SKILL/references"
+if [[ -f "$HERE/../skills/ferret9/SKILL.md" ]]; then
+  cp -R "$HERE/../skills/ferret9/." "$SKILL/"
+else
+  curl -fsSL "$REPO/skills/ferret9/SKILL.md" -o "$SKILL/SKILL.md"
+  curl -fsSL "$REPO/skills/ferret9/references/task-to-credential.md" -o "$SKILL/references/task-to-credential.md"
+  curl -fsSL "$REPO/skills/ferret9/references/detail-writing-guide.md" -o "$SKILL/references/detail-writing-guide.md"
+fi
+
 SRC="$WORKDIR/guard.py"
 MARK="ferret9-guard"
-REASON="凭据文件不经 Ferret9 读。改跑 ferret9 list 选凭据。"
+REASON="凭据只能走 ferret9。先跑 ferret9 list 选凭据，再用 ferret9 run <名称> -- <命令>。"
 
 want="${1:-all}"
 case "$want" in
@@ -65,12 +75,19 @@ place_script() {
   printf '%s' "$dir/ferret9-guard.py"
 }
 
+place_skill() {
+  local dir="$1"
+  mkdir -p "$dir"
+  cp -R "$SKILL/." "$dir/"
+}
+
 # --- Cursor ------------------------------------------------------------- 
 # ~/.cursor/hooks.json uses beforeReadFile and beforeShellExecution.
 # A crash or timeout only blocks when failClosed is true.
 if [[ "$want" == all || "$want" == cursor ]]; then
   if [[ -d "$HOME/.cursor" ]]; then
     script="$(place_script "$HOME/.cursor/hooks")"
+    place_skill "$HOME/.cursor/skills/ferret9"
     "$PY" - "$HOME/.cursor/hooks.json" "$script" <<'PY'
 import json, os, sys
 path, script = sys.argv[1], sys.argv[2]
@@ -103,9 +120,10 @@ json_agent() {
   if [[ ! -d "$dir" ]]; then note "$name 未安装，跳过"; skipped=$((skipped + 1)); return; fi
   local script
   script="$(place_script "$dir/hooks")"
-  "$PY" - "$dir/$file" "$script" "$matcher" <<'PY'
+  place_skill "$dir/skills/ferret9"
+  "$PY" - "$dir/$file" "$script" "$matcher" "$name" <<'PY'
 import json, sys
-path, script, matcher = sys.argv[1], sys.argv[2], sys.argv[3]
+path, script, matcher, name = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 try:
     doc = json.load(open(path))
 except FileNotFoundError:
@@ -115,7 +133,7 @@ if not isinstance(doc, dict):
 groups = doc.setdefault("hooks", {}).setdefault("PreToolUse", [])
 groups[:] = [g for g in groups if not any(h.get("_ferret9") for h in g.get("hooks", []))]
 groups.append({"matcher": matcher, "hooks": [
-    {"type": "command", "command": "python3 " + script, "timeout": 10, "_ferret9": True}]})
+    {"type": "command", "command": "python3 " + script + " " + name, "timeout": 10, "_ferret9": True}]})
 json.dump(doc, open(path, "w"), indent=2, ensure_ascii=False)
 open(path, "a").write("\n")
 PY
@@ -142,6 +160,7 @@ if [[ "$want" == all || "$want" == trae ]]; then
     base="$HOME/.trae-cn"
     [[ -d "$base" ]] || base="$HOME/.trae"
     script="$(place_script "$base/hooks")"
+    place_skill "$base/skills/ferret9"
     "$PY" - "$base/hooks.json" "$script" <<'PY'
 import json, sys
 path, script = sys.argv[1], sys.argv[2]
@@ -153,7 +172,7 @@ doc.setdefault("version", 1)
 groups = doc.setdefault("hooks", {}).setdefault("PreToolUse", [])
 groups[:] = [g for g in groups if not any(h.get("_ferret9") for h in g.get("hooks", []))]
 groups.append({"matcher": "Read|RunCommand", "hooks": [
-    {"type": "command", "command": "python3 " + script, "timeout": 10, "_ferret9": True}]})
+    {"type": "command", "command": "python3 " + script + " trae", "timeout": 10, "_ferret9": True}]})
 json.dump(doc, open(path, "w"), indent=2, ensure_ascii=False)
 open(path, "a").write("\n")
 PY
@@ -168,6 +187,7 @@ fi
 if [[ "$want" == all || "$want" == copilot ]]; then
   if [[ -d "$HOME/.copilot" ]]; then
     script="$(place_script "$HOME/.copilot/hooks")"
+    place_skill "$HOME/.copilot/skills/ferret9"
     "$PY" - "$HOME/.copilot/hooks.json" "$script" <<'PY'
 import json, sys
 path, script = sys.argv[1], sys.argv[2]
@@ -179,7 +199,7 @@ doc.setdefault("version", 1)
 groups = doc.setdefault("hooks", {}).setdefault("preToolUse", [])
 groups[:] = [g for g in groups if not any(h.get("_ferret9") for h in g.get("hooks", []))]
 groups.append({"matcher": "read_file|view|bash", "hooks": [
-    {"type": "command", "command": "python3 " + script, "timeout": 10, "_ferret9": True}]})
+    {"type": "command", "command": "python3 " + script + " copilot", "timeout": 10, "_ferret9": True}]})
 json.dump(doc, open(path, "w"), indent=2, ensure_ascii=False)
 open(path, "a").write("\n")
 PY
@@ -196,9 +216,10 @@ toml_agent() {
   if [[ ! -d "$dir" ]]; then note "$name 未安装，跳过"; skipped=$((skipped + 1)); return; fi
   local script dest="$dir/$file"
   script="$(place_script "$dir/hooks")"
-  "$PY" - "$dest" "$script" "$block" <<'PY'
+  place_skill "$dir/skills/ferret9"
+  "$PY" - "$dest" "$script" "$block" "$name" <<'PY'
 import pathlib, sys
-dest, script, kind = sys.argv[1], sys.argv[2], sys.argv[3]
+dest, script, kind, name = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 p = pathlib.Path(dest)
 text = p.read_text() if p.exists() else ""
 start = "# >>> ferret9-guard >>>"
@@ -224,7 +245,7 @@ matcher = "^Bash$"
 
 [[hooks.PreToolUse.hooks]]
 type = "command"
-command = "python3 {script}"
+command = "python3 {script} {name}"
 timeout = 10
 {end}
 """
@@ -234,7 +255,7 @@ elif kind == "hermes":
 hooks:
   pre_tool_call:
     - matcher: "read_file|terminal"
-      command: "python3 {script}"
+      command: "python3 {script} {name}"
       timeout: 10
       fail_closed: true
 {end}
@@ -245,7 +266,7 @@ else:
 [[hooks]]
 event = "PreToolUse"
 matcher = "Read|Bash"
-command = "python3 {script}"
+command = "python3 {script} {name}"
 timeout = 10
 {end}
 """
@@ -265,6 +286,8 @@ if [[ "$want" == all || "$want" == kimi ]]; then
   toml_agent kimi "$HOME/.kimi-code" config.toml kimi
 fi
 
+place_skill "$HOME/.agents/skills/ferret9"
+
 echo
-echo "安装 $installed 个，跳过 $skipped 个，验证失败 $failed 个。"
+echo "安装 $installed 个，跳过 $skipped 个，验证失败 $failed 个。skill 已写入 ~/.agents/skills/ferret9，以及每个装上的 agent 的 skills/ferret9。"
 if [[ "$failed" -ne 0 ]]; then exit 1; fi

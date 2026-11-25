@@ -1,18 +1,16 @@
 sequenceDiagram
     actor 用户
-    participant 客户端 as App 或命令行
-    participant launchd
+    participant 命令行 as ferret9
     participant 服务 as ferret9-service
-    participant 数据 as /var/db/ferret9
+    participant 家目录 as 源文件
+    participant 工具 as 官方 CLI
 
-    用户->>客户端: list、add、rename、delete、test
-    alt 写入才会授权
-        客户端->>用户: 系统授权框
-        用户-->>客户端: 允许
-        客户端->>数据: 写入 5 分钟授权票
-    end
-    客户端->>launchd: 连接 socket
-    launchd->>服务: 把连接交给服务
-    Note over 服务: 写入前先核对授权票
-    服务->>数据: 读或写记录
-    服务-->>客户端: 名称、类型、说明、指纹
+    用户->>命令行: run 名称 -- 命令
+    命令行->>服务: 确认名称存在，并做 test
+    服务-->>命令行: 通过或拒绝
+    命令行->>家目录: 按名称再识别一次
+    命令行->>命令行: 写临时文件，权限 0600
+    命令行->>工具: 只传路径或环境变量
+    工具-->>命令行: 退出码和输出
+    命令行->>命令行: 脱敏后追加审计
+    命令行->>命令行: 删掉临时文件

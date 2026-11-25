@@ -26,6 +26,25 @@ if args.first == "add-batch" {
     exit(failed == 0 ? 0 : 1)
 }
 
+if args.first == "run" {
+    let reviewed = args.contains(Runner.reviewFlag)
+    let parts = args.filter { $0 != Runner.reviewFlag }
+    guard let cut = parts.firstIndex(of: "--"), cut >= 2, cut + 1 < parts.count else {
+        fputs("用法：run [--reviewed] <名称> -- <命令> [参数...]\n", stderr)
+        exit(2)
+    }
+    let name = parts[1]
+    let command = Array(parts[(cut + 1)...])
+    do {
+        let outcome = try launch(name: name, command: command, reviewed: reviewed, socket: socket)
+        if !outcome.output.isEmpty { print(outcome.output) }
+        exit(outcome.status)
+    } catch {
+        fputs(((error as? CofferError).map { $0.errorDescription ?? "" } ?? error.localizedDescription) + "\n", stderr)
+        exit(2)
+    }
+}
+
 do {
     let req = try parse(args)
     let res = try Client.call(req, socketPath: socket)
@@ -67,8 +86,70 @@ func parse(_ a: [String]) throws -> Request {
         return .updateInline(name: a[1], label: a[2], contentBase64: try readStdin().base64EncodedString(), authorization: try ticket())
     case "delete": guard a.count == 2 else { throw CofferError.invalid("delete <名称>") }
         return .delete(name: a[1], authorization: try ticket())
-    default: throw CofferError.invalid("list|inspect|paste|test|add|add-paste|add-batch|rename|replace|replace-paste|delete")
+    default: throw CofferError.invalid("list|inspect|paste|test|run|add|add-paste|add-batch|rename|replace|replace-paste|delete")
     }
+}
+
+func launch(name: String, command: [String], reviewed: Bool, socket: String) throws -> Runner.Outcome {
+    let res = try Client.call(.list, socketPath: socket)
+    guard res.ok else { throw CofferError.unavailable(res.message) }
+    guard let summary = res.credentials.first(where: { $0.name == name }) else { throw CofferError.notFound(name) }
+    let probe = try Client.call(.test(name: name), socketPath: socket)
+    guard probe.ok, probe.message != "输出已拦截" else { throw CofferError.refused(probe.message) }
+    let item = try material(name: name, kind: summary.kind)
+    let outcome = Runner.run(item: item, command: command, reviewed: reviewed, secrets: item.secrets)
+    AuditLog.record(.init(time: Fingerprint.stamp(), session: sessionID(), name: name, kind: item.kind,
+                           command: command.joined(separator: " "), reviewed: reviewed,
+                           status: outcome.status, output: outcome.output))
+    return outcome
+}
+
+func material(name: String, kind: String) throws -> StoredCredential {
+    let dirs: [String]
+    switch kind {
+    case "kubeconfig": dirs = [".kube"]
+    case "aliyun": dirs = [".aliyun"]
+    case "aws": dirs = [".aws"]
+    case "cloudflare": dirs = [".cloudflare"]
+    case "feishu": dirs = [".feishu"]
+    case "private-key": dirs = [".ssh"]
+    case "token": dirs = [".github"]
+    default: throw CofferError.invalid("类型 \(kind) 没有代发")
+    }
+    let home = FileManager.default.homeDirectoryForCurrentUser
+    for rel in dirs {
+        if let hit = matchPrepared(name: name, in: home.appendingPathComponent(rel), depth: 0) {
+            return StoredCredential(name: name, kind: kind, fields: payloadFields(hit.payload), secrets: hit.secrets)
+        }
+    }
+    throw CofferError.notFound("源文件 " + name)
+}
+
+func matchPrepared(name: String, in dir: URL, depth: Int) -> PreparedCredential? {
+    guard depth < 4, let files = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) else { return nil }
+    for file in files {
+        if file.lastPathComponent == "cache" || file.lastPathComponent == "http-cache" { continue }
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: file.path, isDirectory: &isDir) else { continue }
+        if isDir.boolValue {
+            if let hit = matchPrepared(name: name, in: file, depth: depth + 1) { return hit }
+            continue
+        }
+        guard let data = try? Data(contentsOf: file) else { continue }
+        if let hit = Importer.prepare(data: data, source: file.lastPathComponent).0.first(where: { $0.name == name }) {
+            return hit
+        }
+    }
+    return nil
+}
+
+func payloadFields(_ data: Data) -> [String: String] {
+    (try? JSONSerialization.jsonObject(with: data)) as? [String: String] ?? [:]
+}
+
+func sessionID() -> String {
+    let env = ProcessInfo.processInfo.environment
+    return env["FERRET9_SESSION"] ?? env["CURSOR_CONVERSATION_ID"] ?? ""
 }
 func readStdin() throws -> Data {
     let d = FileHandle.standardInput.readDataToEndOfFile()

@@ -1001,8 +1001,6 @@ struct Usage {
             return Usage(command: shown.isEmpty ? "" : "open \(shown)", open: "本机没有 wrangler。用编辑器打开原文件。")
         case "feishu":
             return Usage(command: shown.isEmpty ? "" : "open \(shown)", open: "本机没有飞书命令行。用编辑器打开原文件。")
-        case "obsutil":
-            return Usage(command: shown.isEmpty ? "" : "open \(shown)", open: "本机没有 obsutil。用编辑器打开原文件。")
         case "token":
             return Usage(command: name.contains("github") ? "gh auth status" : (shown.isEmpty ? "" : "open \(shown)"),
                          open: name.contains("github") ? "gh 读的是钥匙串，不读这个文件。" : "用编辑器打开原文件。命令行不会自动带上这个 token。")

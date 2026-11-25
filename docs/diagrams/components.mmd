@@ -1,6 +1,9 @@
 flowchart LR
-    App["菜单栏 App<br/>Ferret9"] --> Sock["/var/run/ferret9.sock<br/>launchd 创建，0666"]
-    CLI["命令行<br/>ferret9"] --> Sock
+    App["菜单栏 App"] --> Sock["/var/run/ferret9.sock"]
+    CLI["命令行 ferret9"] --> Sock
     Sock --> Svc["ferret9-service<br/>以 _ferret9 运行"]
-    Svc --> Store["/var/db/ferret9<br/>每条一个 json，0600"]
-    Svc --> Grants["/var/db/ferret9/grants<br/>授权票，5 分钟有效"]
+    Svc --> Store["/var/db/ferret9<br/>名称、类型、说明"]
+    CLI --> Home["家目录源文件<br/>只在 run 时读"]
+    CLI --> Tmp["临时文件 0600<br/>跑完就删"]
+    Tmp --> Tool["kubectl、aliyun、aws<br/>curl、ssh、gh"]
+    CLI --> Audit["~/.ferret9/audit<br/>一天一个 jsonl"]

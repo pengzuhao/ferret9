@@ -1,6 +1,6 @@
 # 拦住 agent 直接读凭据文件
 
-不用克隆仓库。一条命令装好，并当场验证：
+不用克隆仓库。一条命令装好守卫和 skill，并当场验证：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/pengzuhao/ferret9/main/scripts/install-guard.sh | bash
@@ -14,16 +14,17 @@ curl -fsSL https://raw.githubusercontent.com/pengzuhao/ferret9/main/scripts/inst
 
 可选的名字：`cursor`、`claude`、`codex`、`hermes`、`copilot`、`qoder`、`lingma`、`trae`、`codebuddy`、`kimi`。
 
-再跑一次是覆盖，不是叠加。脚本用固定标记认出自己上次写的条目，先删掉再重写。
+再跑一次是覆盖，不是叠加。脚本用固定标记认出自己上次写的条目，先删掉再重写。skill 写到每个装上的 agent 的 `skills/ferret9`，另写一份到 `~/.agents/skills/ferret9`。
 
 ## 它拦什么
 
-只拦「把密钥读进对话」。`kubectl`、`aliyun`、`ossutil`、`aws`、`ssh`、`gh`、`terraform`、`helm`、`redis-cli` 自己读配置文件，密钥不回到模型，一律放行。
+拦两类。一类是「把密钥读进对话」，一类是「绕过 `ferret9 run`，让命令不进审计」。
 
-拒绝这两类：
+拒绝这三类：
 
 - 读文件工具打开家目录下的 `.kube`、`.aliyun`、`.aws`、`.ssh`、`.cloudflare`、`.ossutilconfig`、`.netrc`、`.config/gh`、`.config/gcloud`、`.config/ferret9`，以及 `.zshrc`、`.bashrc`、`.zprofile`、`.bash_profile`。
-- shell 里用 `cat`、`head`、`tail`、`less`、`more`、`sed`、`awk` 打这些路径，或用 `python -c`、`ruby -e`、`perl -e`、`node -e` 打开它们。
+- shell 里点了这些路径，不管开头是 `cat`、`python -c` 还是 `export`。
+- 直接跑 `kubectl`、`aliyun`、`aws`、`gh`、`ssh`。这几条必须写成 `ferret9 run <名称> -- <命令>`，这样临时文件由 ferret9 建、命令进 `~/.ferret9/audit/`。`ferret9` 和 `coffer` 开头的命令放行。
 
 拦不住的也说清楚。模型不调用工具、直接在回复里背出密钥，hook 看不见。官方命令把密钥打到自己的标准输出，内容还是会进对话，这要靠命令本身不打印密钥。
 
@@ -36,7 +37,12 @@ curl -fsSL https://raw.githubusercontent.com/pengzuhao/ferret9/main/scripts/inst
 | 读文件工具打开 `~/.kube/config` | 拒绝 |
 | 读文件工具打开 `~/notes.txt` | 放行 |
 | `cat ~/.kube/config` | 拒绝 |
-| `kubectl get ns` | 放行 |
+| `kubectl get ns` | 拒绝 |
+| `aliyun ecs DescribeRegions` | 拒绝 |
+| `aws sts get-caller-identity` | 拒绝 |
+| `gh api user` | 拒绝 |
+| `ssh user@host` | 拒绝 |
+| `ferret9 run config-lab -- kubectl get ns` | 放行 |
 | `python3 -c` 打开 `~/.kube/config` | 拒绝 |
 
 这是在测守卫脚本的判断，不是在驱动 agent 本身。agent 大多只在启动时加载 hook，所以装完要重启那个 agent，拦截才生效。

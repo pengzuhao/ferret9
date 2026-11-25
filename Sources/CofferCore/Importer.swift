@@ -32,6 +32,9 @@ public enum Importer {
             return ([], ScanDiagnostics(encoding: "unknown", segmentCount: 0, attempts: [], warnings: ["无法解码"]))
         }
         let base = baseName(from: source)
+        if let whole = pem(decoded.text, base).first {
+            return ([whole], ScanDiagnostics(encoding: decoded.encoding, segmentCount: 1, attempts: ["pem"], warnings: warnings))
+        }
         let segments = Text.segments(decoded.text)
         if segments.count > 1 { attempts.insert("segment-split") }
         var found: [PreparedCredential] = []
@@ -70,7 +73,6 @@ public enum Importer {
             ("json", { jsonFlat(data, base) }),
             ("cloudflare-yaml", { cloudflare(text, base) }),
             ("feishu", { feishu(data, base) }),
-            ("obsutil", { obsutil(data, base) }),
             ("redis", { redis(text, base) }),
             ("pem", { pem(text, base) }),
             ("heuristic-tokens", { heuristicTokens(text, base) }),
@@ -212,16 +214,6 @@ public enum Importer {
         let app = Text.field(obj, ["app_id"]) ?? ""
         return [make(name: base, kind: "feishu", detail: app.isEmpty ? "飞书应用" : "飞书 \(app)",
                      material: secret, payload: ["format": "feishu", "app_id": app, "app_secret": secret], secrets: [secret])]
-    }
-
-    private static func obsutil(_ data: Data, _ base: String) -> [PreparedCredential] {
-        let values = Text.assignments(data)
-        guard let ak = lookup(values, "ak"), let sk = lookup(values, "sk"), ak.count >= 8, sk.count >= 8 else { return [] }
-        let endpoint = lookup(values, "endpoint") ?? ""
-        return [make(name: base, kind: "obsutil", detail: endpoint.isEmpty ? "华为 OBS" : endpoint,
-                     material: ak + ":" + sk,
-                     payload: ["format": "obsutil", "endpoint": endpoint, "access_key_id": ak, "access_key_secret": sk],
-                     secrets: [ak, sk])]
     }
 
     private static func redis(_ text: String, _ base: String) -> [PreparedCredential] {

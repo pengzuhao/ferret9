@@ -12,7 +12,7 @@ import os
 import re
 import sys
 
-REASON = "凭据文件不经 Ferret9 读。改跑 ferret9 list 选凭据。"
+REASON = "凭据只能走 ferret9。先跑 ferret9 list 选凭据，再用 ferret9 run <名称> -- <命令>。不要把家目录里的凭据文件交给 CLI。"
 
 PROTECTED = (
     ".kube", ".aliyun", ".aws", ".ssh", ".cloudflare",
@@ -22,11 +22,8 @@ PROTECTED_DIRS = (".config/gh", ".config/gcloud", ".config/ferret9")
 SHELL_FILES = (".zshrc", ".bashrc", ".zprofile", ".bash_profile")
 READ_TOOLS = {"read", "read_file", "view"}
 SHELL_TOOLS = {"bash", "terminal", "shell", "runcommand"}
-OFFICIAL = {"kubectl", "aliyun", "ossutil", "aws", "ssh", "gh",
-            "terraform", "helm", "redis-cli"}
-DUMPERS = {"cat", "head", "tail", "less", "more", "sed", "awk",
-           "bat", "nl", "strings", "base64", "xxd", "od"}
-EVAL = {"python", "python3", "ruby", "perl", "node"}
+# 这些命令自己读家目录凭据。有 ferret9 run 之后，直接调就是绕过审计。
+BROKERED = {"kubectl", "aliyun", "aws", "gh", "ssh"}
 
 
 def home_path(value):
@@ -56,15 +53,16 @@ def protected(path):
 def command_blocked(command):
     if not isinstance(command, str) or not command.strip():
         return False
-    head = command.strip().split()[0]
-    head = os.path.basename(head)
-    if head in OFFICIAL:
+    head = os.path.basename(command.strip().split()[0])
+    if head in ("ferret9", "coffer"):
         return False
-    mentions = protected_mentioned(command)
-    if head in DUMPERS and mentions:
+    # 命令里点了家目录凭据就拒，不管开头是 aliyun、cat 还是 export。
+    if protected_mentioned(command):
         return True
-    if head in EVAL and re.search(r"\s-[ce]\b", command) and mentions:
-        return True
+    # kubectl、aliyun 必须从 ferret9 run 出去，否则审计里没有这一条。
+    for word in re.findall(r"[^\s|&;()<>]+", command):
+        if os.path.basename(word) in BROKERED:
+            return True
     return False
 
 
