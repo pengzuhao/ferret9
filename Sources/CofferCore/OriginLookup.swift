@@ -57,5 +57,6 @@ public enum OriginLookup {
         "cloudflare": [".cloudflare"],
         "feishu": [".feishu"],
         "github": [".github"],
+        "tcloud": [".tcloud"],
     ]
 }

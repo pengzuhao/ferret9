@@ -13,7 +13,7 @@
 | feishu | `~/.feishu` | `curl` |
 | private-key | `~/.ssh` | `ssh`、`ssh-keygen` |
 | github | `~/.github` | `gh` |
-| ossutil、redis | 不代发 | `run` 拒绝 |
+| ossutil、redis、tcloud | 不代发 | `run` 拒绝 |
 
 编码按 UTF-8、GB18030、Latin-1 依次试。除 PEM 外，空行或单独一行的 `---` 会把文件拆成多段，每段单独识别。同一段可以命中多种，按生成的名称去重。
 
@@ -147,6 +147,19 @@ instances:
 正文
 -----END OPENSSH PRIVATE KEY-----
 ```
+
+## tcloud
+
+JSON 对象。要同时有 `SecretId` 和 `SecretKey`，也认 `secret_id` 和 `secret_key`。`SecretKey` 至少 8 个字符。名称是 `<文件名>-tcloud`。能入库，没有代发。源文件放在 `~/.tcloud`。
+
+```json
+{
+  "SecretId": "AKIDexample",
+  "SecretKey": "secret-example"
+}
+```
+
+`~/.tcloud/config.json` 的名称是 `config-tcloud`。
 
 ## github
 

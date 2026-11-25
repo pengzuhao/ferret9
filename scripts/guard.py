@@ -15,7 +15,7 @@ import sys
 REASON = "凭据只能走 ferret9。先跑 ferret9 list 选凭据，再用 ferret9 run <名称> -- <命令>。不要把家目录里的凭据文件交给 CLI。"
 
 PROTECTED = (
-    ".kube", ".aliyun", ".aws", ".ssh", ".cloudflare",
+    ".kube", ".aliyun", ".aws", ".ssh", ".cloudflare", ".tcloud",
     ".ossutilconfig", ".netrc",
 )
 PROTECTED_DIRS = (".config/gh", ".config/gcloud", ".config/ferret9")

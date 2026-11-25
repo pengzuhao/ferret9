@@ -71,6 +71,7 @@ public enum Importer {
             ("ini", { ini(data, base) }),
             ("assignments", { assignments(data, base) }),
             ("json", { jsonFlat(data, base) }),
+            ("tcloud", { tcloud(data, base) }),
             ("cloudflare-yaml", { cloudflare(text, base) }),
             ("feishu", { feishu(data, base) }),
             ("redis", { redis(text, base) }),
@@ -183,6 +184,17 @@ public enum Importer {
                               payload: ["format": "github", "field": n, "token": v], secrets: [v]))
         }
         return found
+    }
+
+    private static func tcloud(_ data: Data, _ base: String) -> [PreparedCredential] {
+        guard let obj = Text.jsonObject(data),
+              let id = Text.field(obj, ["SecretId", "secret_id"]),
+              let key = Text.field(obj, ["SecretKey", "secret_key"]),
+              key.count >= 8 else { return [] }
+        return [make(name: "\(base)-tcloud", kind: "tcloud", detail: "tcloud",
+                     material: id + ":" + key,
+                     payload: ["format": "tcloud", "secret_id": id, "secret_key": key],
+                     secrets: [id, key])]
     }
 
     private static func jsonFlat(_ data: Data, _ base: String) -> [PreparedCredential] {

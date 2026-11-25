@@ -71,6 +71,10 @@ instances:
 """
 check(kinds(redis, source: "config.yaml").contains("redis"), "redis")
 
+let tcloud = "{\"SecretId\":\"AKIDexample0001\",\"SecretKey\":\"placeholder-secret-0001\"}"
+let tc = Importer.analyze(data: Data(tcloud.utf8), source: "config.json").0
+check(tc.count == 1 && tc[0].kind == "tcloud" && tc[0].name == "config-tcloud", "tcloud json")
+
 let token = "github token ghp_placeholderTokenValue0001 sits in notes\n"
 let tokens = Importer.analyze(data: Data(token.utf8), source: "notes.txt").0
 check(tokens.contains { $0.kind == "github" && $0.confidence == .medium }, "heuristic github")

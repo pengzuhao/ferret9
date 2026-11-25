@@ -581,10 +581,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         guard !auth.isEmpty else { message.stringValue = "需要授权"; return }
         for item in pick {
             respond(.addInline(name: item.name, label: source, contentBase64: pastePayload.base64EncodedString(), origin: sourcePath.isEmpty ? nil : sourcePath, overrideName: nil, overrideKind: nil, overrideDetail: nil, authorization: auth))
-            if message.stringValue.hasPrefix("已添加") {
+            if message.stringValue.hasPrefix("已添加") || message.stringValue.hasPrefix("已存在") {
                 candidates.removeAll { $0.name == item.name }
             }
         }
+        if credentials.isEmpty { respond(.list); return }
         rebuild()
     }
 
@@ -597,14 +598,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         var failed: [String] = []
         for item in pending {
             respond(.addInline(name: item.name, label: source, contentBase64: pastePayload.base64EncodedString(), origin: sourcePath.isEmpty ? nil : sourcePath, overrideName: nil, overrideKind: nil, overrideDetail: nil, authorization: auth))
-            if message.stringValue.hasPrefix("已添加") {
+            if message.stringValue.hasPrefix("已添加") || message.stringValue.hasPrefix("已存在") {
                 candidates.removeAll { $0.name == item.name }
                 added += 1
             } else {
                 failed.append(item.name)
             }
         }
-        rebuild()
+        if credentials.isEmpty { respond(.list) } else { rebuild() }
         if failed.isEmpty {
             message.stringValue = "已入库 \(added) 条"
         } else {
@@ -677,15 +678,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
         let auth = ticket()
         guard !auth.isEmpty else { message.stringValue = "需要授权"; return }
         if case .candidate(let item) = row.value {
-            respond(.addInline(name: item.name, label: source, contentBase64: pastePayload.base64EncodedString(), origin: sourcePath.isEmpty ? nil : sourcePath, overrideName: newName, overrideKind: kind.isEmpty ? nil : kind, overrideDetail: detail.isEmpty ? nil : detail, authorization: ticket()))
-            if message.stringValue.hasPrefix("已添加") {
+            respond(.addInline(name: item.name, label: source, contentBase64: pastePayload.base64EncodedString(), origin: sourcePath.isEmpty ? nil : sourcePath, overrideName: newName, overrideKind: kind.isEmpty ? nil : kind, overrideDetail: detail.isEmpty ? nil : detail, authorization: auth))
+            if message.stringValue.hasPrefix("已添加") || message.stringValue.hasPrefix("已存在") {
                 candidates.removeAll { $0.name == item.name }
             }
+            if credentials.isEmpty { respond(.list); return }
             rebuild()
             return
         }
         guard case .credential = row.value else { return }
-        respond(.update(name: row.title, detail: detail.isEmpty ? nil : detail, kind: kind.isEmpty ? nil : kind, rename: newName == row.title ? nil : newName, source: nil, authorization: ticket()))
+        respond(.update(name: row.title, detail: detail.isEmpty ? nil : detail, kind: kind.isEmpty ? nil : kind, rename: newName == row.title ? nil : newName, source: nil, authorization: auth))
     }
 
     @objc func revealInFinder() {
@@ -737,7 +739,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTableViewDataSource,
                 return
             }
             candidates = res.candidates
-            if !candidates.isEmpty { credentials = [] }
             rebuild()
         } catch {
             message.stringValue = error.localizedDescription
@@ -971,6 +972,7 @@ struct Usage {
         case "ossutil": return "ossutil cli"
         case "private-key": return "ssh cli"
         case "github": return "gh cli"
+        case "tcloud": return "tcloud"
         case "redis": return "redis-cli"
         default: return kind
         }
@@ -1004,6 +1006,8 @@ struct Usage {
         case "github":
             return Usage(command: "gh auth status",
                          open: "gh 读的是钥匙串，不读这个文件。")
+        case "tcloud":
+            return Usage(command: shown.isEmpty ? "" : "open \(shown)", open: "没有代发。用编辑器打开原文件。")
         default:
             return Usage(command: shown.isEmpty ? "" : "open \(shown)", open: "没有对应命令。用编辑器打开原文件。")
         }
