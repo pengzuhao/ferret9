@@ -12,7 +12,7 @@ public enum Probe {
         case "feishu": return "已保存飞书应用凭据，第一版不代发 API"
         case "redis": return "已保存 Redis \(item.fields["instance"] ?? item.name)，第一版不代发连接"
         case "private-key": return "已保存私钥，不提供探测"
-        case "token": return "已保存 token"
+        case "github": return "已保存 github"
         default: return "已保存，类型 \(item.kind)"
         }
     }

@@ -970,7 +970,7 @@ struct Usage {
         case "aliyun": return "aliyun cli"
         case "ossutil": return "ossutil cli"
         case "private-key": return "ssh cli"
-        case "token": return "gh cli"
+        case "github": return "gh cli"
         case "redis": return "redis-cli"
         default: return kind
         }
@@ -1001,9 +1001,9 @@ struct Usage {
             return Usage(command: shown.isEmpty ? "" : "open \(shown)", open: "本机没有 wrangler。用编辑器打开原文件。")
         case "feishu":
             return Usage(command: shown.isEmpty ? "" : "open \(shown)", open: "本机没有飞书命令行。用编辑器打开原文件。")
-        case "token":
-            return Usage(command: name.contains("github") ? "gh auth status" : (shown.isEmpty ? "" : "open \(shown)"),
-                         open: name.contains("github") ? "gh 读的是钥匙串，不读这个文件。" : "用编辑器打开原文件。命令行不会自动带上这个 token。")
+        case "github":
+            return Usage(command: "gh auth status",
+                         open: "gh 读的是钥匙串，不读这个文件。")
         default:
             return Usage(command: shown.isEmpty ? "" : "open \(shown)", open: "没有对应命令。用编辑器打开原文件。")
         }
@@ -1023,7 +1023,7 @@ enum Catalog {
             ("example-oss", ".ossutilconfig"),
             ("example-aws", ".aws/credentials"),
             ("example-dns", ".cloudflare/config.yaml"),
-            ("example-token", ".github/token.yaml"),
+            ("example-github", ".github/token.yaml"),
             ("example-cache", ".redis/config.yaml"),
             ("example-key", ".ssh/id_ed25519")
         ]

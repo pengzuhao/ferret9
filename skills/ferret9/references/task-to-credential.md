@@ -10,7 +10,7 @@
 | Cloudflare、DNS | cloudflare | 账户、token 名称 | `ferret9 run <名称> -- curl ...` |
 | 飞书 | feishu | 应用 | `ferret9 run <名称> -- curl ...` |
 | AWS | aws | profile | `ferret9 run <名称> -- aws ...` |
-| GitHub、API key | token | 产品名 | `ferret9 run <名称> -- gh ...` |
+| GitHub | github | 产品名 | `ferret9 run <名称> -- gh ...` |
 | SSH 私钥 | private-key | 主机或用途 | `ferret9 run <名称> -- ssh ...` |
 
 一次任务可能要两行，例如集群加 DNS 要 kubeconfig 和 cloudflare。以当次 list 为准。

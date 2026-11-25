@@ -39,7 +39,7 @@ ferret9 run <名称> -- aws sts get-caller-identity
 | cloudflare | `curl` | curl `--config` 里的请求头 |
 | feishu | `curl` | 先换票，票再进 curl `--config` |
 | private-key | `ssh` 或 `ssh-keygen` | `-i` 或 `-f` 指向临时文件 |
-| token | `gh` | `GH_TOKEN` |
+| github | `gh` | `GH_TOKEN` |
 | ossutil、redis | 没有代发 | `run` 直接拒绝 |
 
 命令第一个词必须跟类型对得上。子进程会清掉 `KUBECONFIG`、云厂商 AccessKey 和 `GH_TOKEN`，再只放进这一次要用的那个。输出里如果含库中的密文，整段换成「输出已拦截」。
@@ -58,7 +58,7 @@ socket 写在 `packaging/com.ferret9.service.plist` 的 `Sockets` 里，由 laun
 
 `delete` 只删 `/var/db/ferret9/<名称>.json`，不动 `~/.kube`、`~/.aliyun`、`~/.aws`、`~/.ssh` 里的源文件。
 
-识别器按顺序跑：kubeconfig、阿里云 JSON、INI（AWS、ossutil）、环境变量赋值、扁平 JSON、Cloudflare YAML、飞书、Redis YAML、PEM 私钥、`ghp_` / `sk-` 前缀。PEM 按整份保留，不按空行拆开。没识别出来也会回报编码、分段数和试过的识别器。
+每种文件要长成什么样、名称怎么生成、`run` 到哪个目录再找，写在 [凭据格式](docs/credential-formats.md)。先跑 `ferret9 inspect <文件>`，用它印出的名称去 `add`。没识别出来也会回报编码、分段数和试过的识别器。
 
 `test` 只探测。kubeconfig 读集群名，阿里云发一次 `DescribeRegions`。其余类型回答「已保存」。
 

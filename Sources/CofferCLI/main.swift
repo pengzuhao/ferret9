@@ -113,7 +113,7 @@ func material(name: String, kind: String) throws -> StoredCredential {
     case "cloudflare": dirs = [".cloudflare"]
     case "feishu": dirs = [".feishu"]
     case "private-key": dirs = [".ssh"]
-    case "token": dirs = [".github"]
+    case "github": dirs = [".github"]
     default: throw CofferError.invalid("类型 \(kind) 没有代发")
     }
     let home = FileManager.default.homeDirectoryForCurrentUser

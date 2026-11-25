@@ -179,8 +179,8 @@ public enum Importer {
         for n in ["API_KEY", "TOKEN", "ACCESS_TOKEN", "token_value", "apikey", "api_key", "value"] {
             guard let v = lookup(values, n), v.count >= 8 else { continue }
             let label = (n == "value" ? values["name"] : nil) ?? n
-            found.append(make(name: "\(base)-\(n.lowercased())", kind: "token", detail: label, material: n + ":" + v,
-                              payload: ["format": "token", "field": n, "token": v], secrets: [v]))
+            found.append(make(name: "\(base)-\(n.lowercased())", kind: "github", detail: label, material: n + ":" + v,
+                              payload: ["format": "github", "field": n, "token": v], secrets: [v]))
         }
         return found
     }
@@ -242,8 +242,8 @@ public enum Importer {
         for (pat, label) in patterns {
             guard let tok = firstMatch(text, pat, 0) else { continue }
             idx += 1
-            found.append(make(name: "\(base)-\(label)-\(idx)", kind: "token", detail: label, material: tok,
-                              payload: ["format": "token", "token": tok, "vendor": label], secrets: [tok], confidence: .medium))
+            found.append(make(name: "\(base)-\(label)-\(idx)", kind: "github", detail: label, material: tok,
+                              payload: ["format": "github", "token": tok, "vendor": label], secrets: [tok], confidence: .medium))
         }
         return found
     }

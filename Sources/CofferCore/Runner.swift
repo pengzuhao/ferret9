@@ -137,8 +137,9 @@ public enum Runner {
             default:
                 return nil
             }
-        case "token":
-            guard command[0] == "gh", let token = item.fields["token"], !token.isEmpty else { return nil }
+        case "github":
+            guard command[0] == "gh", let token = item.fields["token"], !token.isEmpty,
+                  !token.hasPrefix("sk-") else { return nil }
             return Prepared(
                 binary: binary("gh"),
                 arguments: { _ in Array(command.dropFirst()) },

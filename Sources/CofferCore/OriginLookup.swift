@@ -56,6 +56,6 @@ public enum OriginLookup {
         "redis": [".redis"],
         "cloudflare": [".cloudflare"],
         "feishu": [".feishu"],
-        "token": [".github"],
+        "github": [".github"],
     ]
 }

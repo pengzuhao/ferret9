@@ -62,7 +62,7 @@ metadata:
 - 不替用户导入、替换或从列表移除。
 - list 失败时不编造账号。
 - 说明为空，或仍是导入时识别器生成的占位（例如只有一个 context 名），就当没写。请人在 App 右侧改完再保存，不要猜。
-- list 为空：先请人在 App 里导入。`run` 代发 kubeconfig、aliyun、aws、cloudflare、feishu、private-key、token。ossutil 和 redis 还没有代发，请人用官方 CLI，不要把 token 贴进对话。
+- list 为空：先请人在 App 里导入。`run` 代发 kubeconfig、aliyun、aws、cloudflare、feishu、private-key、github。ossutil 和 redis 还没有代发，请人用官方 CLI，不要把密钥贴进对话。
 - 导入步骤只告诉人，自己不做：顶栏「导入」→ 选择文件，或粘贴（文件名和放入目录必填）→ 左侧出现候选 → 双击一行并点允许。粘贴框里填的说明不会入库。
 
 ## Verification

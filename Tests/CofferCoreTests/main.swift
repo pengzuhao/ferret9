@@ -73,7 +73,7 @@ check(kinds(redis, source: "config.yaml").contains("redis"), "redis")
 
 let token = "github token ghp_placeholderTokenValue0001 sits in notes\n"
 let tokens = Importer.analyze(data: Data(token.utf8), source: "notes.txt").0
-check(tokens.contains { $0.kind == "token" && $0.confidence == .medium }, "heuristic token")
+check(tokens.contains { $0.kind == "github" && $0.confidence == .medium }, "heuristic github")
 
 let mixed = cloudflare + "\n---\n" + kube
 let mixedItems = Importer.analyze(data: Data(mixed.utf8), source: "bundle.txt").0
@@ -155,10 +155,10 @@ dispatch: do {
     check(Runner.prepare(key, command: ["ssh-keygen", "-lf"])?.arguments("/tmp/x") == ["-l", "-f", "/tmp/x"], "私钥给 ssh-keygen -f")
     check(Runner.prepare(key, command: ["ssh", "-o", "BatchMode=yes", "user@host"])?.arguments("/tmp/x").starts(with: ["-i", "/tmp/x"]) == true, "私钥给 ssh -i")
 
-    let gh = StoredCredential(name: "t", kind: "token", fields: ["token": "ghp_exampletoken0001"], secrets: [])
+    let gh = StoredCredential(name: "t", kind: "github", fields: ["token": "ghp_exampletoken0001"], secrets: [])
     let ghCmd = Runner.prepare(gh, command: ["gh", "api", "user"])
-    check(ghCmd?.arguments("/tmp/x") == ["api", "user"], "gh 参数不含 token")
-    check(ghCmd?.env("/tmp/x")["GH_TOKEN"] == "ghp_exampletoken0001", "token 走 GH_TOKEN")
+    check(ghCmd?.arguments("/tmp/x") == ["api", "user"], "gh 参数不含密钥")
+    check(ghCmd?.env("/tmp/x")["GH_TOKEN"] == "ghp_exampletoken0001", "github 走 GH_TOKEN")
 
     let leaked = Runner.Outcome(status: 0, output: "secret-value-0001", blocked: false)
     check(Fingerprint.containsSecret(leaked.output, secrets: ali.secrets), "输出里的密钥会被拦住")
