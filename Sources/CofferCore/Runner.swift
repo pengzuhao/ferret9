@@ -147,6 +147,17 @@ public enum Runner {
                 body: "",
                 extraSecrets: [token],
                 mint: nil)
+        case "tcloud":
+            guard command[0] == "tccli",
+                  let id = item.fields["secret_id"], let key = item.fields["secret_key"],
+                  !id.isEmpty, !key.isEmpty else { return nil }
+            return Prepared(
+                binary: binary("tccli"),
+                arguments: { _ in Array(command.dropFirst()) },
+                env: { _ in ["TENCENTCLOUD_SECRET_ID": id, "TENCENTCLOUD_SECRET_KEY": key] },
+                body: "",
+                extraSecrets: [id, key],
+                mint: nil)
         default:
             return nil
         }
@@ -172,7 +183,8 @@ public enum Runner {
     }
 
     static func binary(_ name: String) -> String {
-        for dir in ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"] {
+        let local = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".local/bin").path
+        for dir in ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", local] {
             let path = dir + "/" + name
             if FileManager.default.isExecutableFile(atPath: path) { return path }
         }
@@ -190,7 +202,8 @@ public enum Runner {
                      "ALIBABA_CLOUD_SECURITY_TOKEN", "ALIBABACLOUD_ACCESS_KEY_ID", "ALIBABACLOUD_ACCESS_KEY_SECRET",
                      "ALICLOUD_ACCESS_KEY_ID", "ALICLOUD_ACCESS_KEY_SECRET", "AWS_ACCESS_KEY_ID",
                      "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_PROFILE", "AWS_SHARED_CREDENTIALS_FILE",
-                     "GH_TOKEN", "GITHUB_TOKEN"] {
+                     "GH_TOKEN", "GITHUB_TOKEN", "TENCENTCLOUD_SECRET_ID",
+                     "TENCENTCLOUD_SECRET_KEY", "TENCENTCLOUD_TOKEN"] {
             merged.removeValue(forKey: key)
         }
         env.forEach { merged[$0.key] = $0.value }

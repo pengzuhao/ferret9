@@ -1,6 +1,6 @@
 ---
 name: ferret9
-description: Use ferret9 list to pick ops credentials and ferret9 run to execute kubectl, aliyun, aws, gh, ssh, or curl. Use when a task needs a cluster, cloud, DNS, OSS, or API credential, or access is denied.
+description: Use ferret9 list to pick ops credentials and ferret9 run to execute kubectl, aliyun, aws, gh, ssh, curl, or tccli. Use when a task needs a cluster, cloud, DNS, OSS, or API credential, or access is denied.
 license: MIT
 compatibility: Requires the ferret9 command and its macOS service. List output has no secrets.
 metadata:
@@ -22,7 +22,7 @@ metadata:
 
 - `ferret9` 在 `PATH` 上，服务已启动。命令不存在或连不上服务时直接说明，不要改去读家目录里的 kubeconfig、云 CLI 配置或密钥文件。
 - `list`、`test`、`run` 不弹授权框。`rename` 会弹出系统授权，需要人点允许。
-- `kubectl`、`aliyun`、`aws`、`gh`、`ssh` 只通过 `ferret9 run` 执行。直接调用会被本机 hook 拒绝。
+- `kubectl`、`aliyun`、`aws`、`gh`、`ssh`、`tccli` 只通过 `ferret9 run` 执行。直接调用会被本机 hook 拒绝。
 
 ## Procedure
 
@@ -58,11 +58,11 @@ metadata:
 ## Pitfalls
 
 - 不读家目录的 kubeconfig、云 CLI 配置或密钥文件来绕过 list。
-- 不直接跑 `kubectl`、`aliyun`、`aws`、`gh` 或 `ssh`，也不要设置 `KUBECONFIG`、`AWS_ACCESS_KEY_ID`、`GH_TOKEN` 这类变量。hook 会拒绝直接调用。
+- 不直接跑 `kubectl`、`aliyun`、`aws`、`gh`、`ssh` 或 `tccli`，也不要设置 `KUBECONFIG`、`AWS_ACCESS_KEY_ID`、`GH_TOKEN`、`TENCENTCLOUD_SECRET_ID` 这类变量。hook 会拒绝直接调用。
 - 不替用户导入、替换或从列表移除。
 - list 失败时不编造账号。
 - 说明为空，或仍是导入时识别器生成的占位（例如只有一个 context 名），就当没写。请人在 App 右侧改完再保存，不要猜。
-- list 为空：先请人在 App 里导入。`run` 代发 kubeconfig、aliyun、aws、cloudflare、feishu、private-key、github。ossutil、redis 和 tcloud 还没有代发，请人用官方 CLI，不要把密钥贴进对话。
+- list 为空：先请人在 App 里导入。`run` 代发 kubeconfig、aliyun、aws、cloudflare、feishu、private-key、github、tcloud。ossutil 和 redis 还没有代发，请人用官方 CLI，不要把密钥贴进对话。
 - 导入步骤只告诉人，自己不做：顶栏「导入」→ 选择文件，或粘贴（文件名和放入目录必填）→ 左侧出现候选 → 双击一行并点允许。粘贴框里填的说明不会入库。
 
 ## Verification

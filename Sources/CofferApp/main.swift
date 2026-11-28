@@ -972,7 +972,7 @@ struct Usage {
         case "ossutil": return "ossutil cli"
         case "private-key": return "ssh cli"
         case "github": return "gh cli"
-        case "tcloud": return "tcloud"
+        case "tcloud": return "tccli"
         case "redis": return "redis-cli"
         default: return kind
         }
@@ -1007,7 +1007,8 @@ struct Usage {
             return Usage(command: "gh auth status",
                          open: "gh 读的是钥匙串，不读这个文件。")
         case "tcloud":
-            return Usage(command: shown.isEmpty ? "" : "open \(shown)", open: "没有代发。用编辑器打开原文件。")
+            return Usage(command: "tccli tke DescribeClusters --region <region>",
+                         open: "用 tccli。密钥由 ferret9 run 放进环境变量，不进参数。region 要写在命令里。")
         default:
             return Usage(command: shown.isEmpty ? "" : "open \(shown)", open: "没有对应命令。用编辑器打开原文件。")
         }

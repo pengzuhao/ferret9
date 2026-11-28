@@ -15,4 +15,4 @@
 | redis | manual-redis.md | redis-cli | `REDISCLI_AUTH` | 没有 |
 | private-key | manual-private-key.md | ssh | `-i` | 已代发 |
 | github | manual-github.md | gh | `GH_TOKEN` | 已代发 |
-| tcloud | 没有 | 没有 | 没有 | 没有 |
+| tcloud | manual-tcloud.md | tccli | `TENCENTCLOUD_SECRET_ID` / `TENCENTCLOUD_SECRET_KEY` | 已代发 |

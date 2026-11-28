@@ -164,6 +164,13 @@ dispatch: do {
     check(ghCmd?.arguments("/tmp/x") == ["api", "user"], "gh 参数不含密钥")
     check(ghCmd?.env("/tmp/x")["GH_TOKEN"] == "ghp_exampletoken0001", "github 走 GH_TOKEN")
 
+    let tc = StoredCredential(name: "c", kind: "tcloud", fields: ["secret_id": "AKIDexample0001", "secret_key": "secret-value-0001"], secrets: [])
+    let tcCmd = Runner.prepare(tc, command: ["tccli", "tke", "DescribeClusters", "--region", "ap-guangzhou"])
+    check(tcCmd?.arguments("/tmp/x") == ["tke", "DescribeClusters", "--region", "ap-guangzhou"], "tcloud 参数不含密钥")
+    check(tcCmd?.env("/tmp/x")["TENCENTCLOUD_SECRET_ID"] == "AKIDexample0001", "tcloud 走 TENCENTCLOUD_SECRET_ID")
+    check(tcCmd?.env("/tmp/x")["TENCENTCLOUD_SECRET_KEY"] == "secret-value-0001", "tcloud 走 TENCENTCLOUD_SECRET_KEY")
+    check(Runner.prepare(tc, command: ["kubectl", "get"]) == nil, "tcloud 不代发 kubectl")
+
     let leaked = Runner.Outcome(status: 0, output: "secret-value-0001", blocked: false)
     check(Fingerprint.containsSecret(leaked.output, secrets: ali.secrets), "输出里的密钥会被拦住")
 
